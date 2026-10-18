@@ -1,0 +1,36 @@
+services:
+  - type: web
+    name: mercadosolidario-api
+    runtime: docker
+    rootDir: backend
+    plan: free
+    healthCheckPath: /api/public/site-info
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: DATABASE_USERNAME
+        sync: false
+      - key: DATABASE_PASSWORD
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: CORS_ALLOWED_ORIGINS
+        sync: false
+      - key: APP_FRONTEND_BASE_URL
+        sync: false
+      - key: INITIAL_ADMIN_EMAIL
+        sync: false
+      - key: INITIAL_ADMIN_NAME
+        sync: false
+      - key: MAIL_ENABLED
+        value: "true"
+      - key: MAIL_USERNAME
+        sync: false
+      - key: MAIL_PASSWORD
+        sync: false
+      - key: MAIL_FROM
+        sync: false
+      - key: MAIL_NOTIFY
+        sync: false
+      - key: SWAGGER_ENABLED
+        value: "false"
