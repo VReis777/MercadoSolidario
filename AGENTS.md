@@ -13,8 +13,11 @@
 - Segredos (JWT, SMTP `MAIL_PASSWORD`) só via variáveis de ambiente; nunca em arquivos versionados.
 - Perfis novos nascem com a senha temporária (`app.users.temporary-password`) e `must_change_password=true`; o login com ela não emite JWT, só envia link de troca (30 min, uso único).
 
-## Próxima tarefa (retomar aqui)
-- Fila de solicitações: o contato real (telefone/e-mail) deve ficar **visível só para ADMIN e para o usuário atribuído** ao pedido. Hoje `ServiceRequestResponse.contactMasked` mascara para todos — mudar o mapeamento em `ServiceRequestAdministrationService.toResponse/toListResponse` para mostrar o contato completo quando `hasRole(ADMIN)` ou `assignedUser.username == authentication.getName()`; RH_TESOURARIA e DIACONO não atribuídos continuam vendo mascarado. Cuidar também do histórico/notas. Testar com os três perfis.
+## Próxima tarefa (retomar aqui — dia seguinte)
+- **Deploy gratuito** (3 passos, guia completo em `docs/deploy-gratis.md`): 1) Neon — criar banco e gerar JDBC `jdbc:postgresql://...?sslmode=require`; 2) Render — Blueprint com `render.yaml` da raiz (backend Docker), preencher env vars `sync: false` (DATABASE_*, JWT gerado, CORS=`https://mercadosolidario.vercel.app`, APP_FRONTEND_BASE_URL, INITIAL_ADMIN_*, MAIL_*); 3) Vercel — import repo, rootDir `frontend`, `VITE_API_URL=https://mercadosolidario-api.onrender.com`. URLs alvo: site `mercadosolidario.vercel.app`, API `mercadosolidario-api.onrender.com`.
+- **Ajustes vindos dos testes do usuário pelo celular** (ele vai testar `http://192.168.18.76:5173` no celular e anotar o que ajustar — rede local já aberta, só falta liberar portas 5173/8080 no Firewall do Windows se não conectar).
+- GitHub: repo já publicado em https://github.com/VReis777/MercadoSolidario (branch `main`). `.gitignore` exclui `*.xlsx`/`*.ods` (dados pessoais) e `.env`.
+- Já feito e testado: contato mascarado só para não-atribuídos/não-admin; rotas PT com legados redirecionando; página `/sou-empresa` com WhatsApp configurável em Configurações; `crypto.randomUUID` tem fallback (`utils/idempotency.ts`) pois não existe em HTTP fora de localhost.
 
 ## Convenções
 - Migrations comuns em `db/migration` devem ser compatíveis com PostgreSQL e H2 (modo PostgreSQL).
