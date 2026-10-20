@@ -60,20 +60,47 @@ function PublicLanding({ onPrimaryAction, onBenefitRequest, extraActions }: Publ
     <Box sx={{ bgcolor: 'background.default', overflowX: 'hidden' }}>
       <Box
         sx={{
-          background: 'linear-gradient(160deg, #183B56 0%, #247BA0 52%, #55B8A9 100%)',
+          position: 'relative',
+          overflow: 'hidden',
           color: 'white',
           py: { xs: 8, md: 12 },
           px: 2,
           textAlign: 'center',
+          '&::before': {
+            content: '""',
+            position: 'absolute',
+            inset: 0,
+            backgroundImage: 'url(/carrinho.png)',
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            filter: 'blur(6px) brightness(0.55)',
+            transform: 'scale(1.08)',
+          },
         }}
       >
-        <Container maxWidth="md">
+        <Container maxWidth="md" sx={{ position: 'relative' }}>
           <Typography variant="overline" sx={{ letterSpacing: 3, fontWeight: 800 }}>
-            Natal com dignidade
+            MEVAM PETRÓPOLIS · 2026
           </Typography>
-          <Typography variant="h3" component="h1" sx={{ fontWeight: 800, fontSize: { xs: '2rem', sm: '2.8rem', md: '3.4rem' } }}>
-            MERCADO SOLIDÁRIO
-          </Typography>
+          <Box sx={{ mt: 1, mb: 1 }}>
+            <Typography variant="h3" component="h1"
+              sx={{ fontWeight: 900, lineHeight: 1.05, fontSize: { xs: '2.4rem', sm: '3.2rem', md: '4rem' } }}>
+              Mercado
+            </Typography>
+            <Typography component="span"
+              sx={{
+                display: 'inline-block',
+                fontWeight: 900,
+                fontSize: { xs: '2rem', sm: '2.8rem', md: '3.4rem' },
+                color: '#0B2B4B',
+                bgcolor: '#3EC6C0',
+                px: 2,
+                borderRadius: 1,
+                boxShadow: '0 3px 0 #FFC42E',
+              }}>
+              solidário
+            </Typography>
+          </Box>
           <Typography variant="h6" sx={{ fontWeight: 500, mt: 2, mb: 3 }}>
             Natal com dignidade para todas as famílias
           </Typography>

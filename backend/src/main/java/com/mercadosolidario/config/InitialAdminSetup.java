@@ -33,24 +33,35 @@ public class InitialAdminSetup implements ApplicationRunner {
     @Value("${app.initial-admin.name:}")
     private String name;
 
+    @Value("${app.initial-admin2.email:}")
+    private String secondEmail;
+
+    @Value("${app.initial-admin2.name:}")
+    private String secondName;
+
     @Override
     @Transactional
     public void run(ApplicationArguments args) {
-        if (email == null || email.isBlank()) {
+        createIfMissing(email, name);
+        createIfMissing(secondEmail, secondName);
+    }
+
+    private void createIfMissing(String rawEmail, String fullName) {
+        if (rawEmail == null || rawEmail.isBlank()) {
             return;
         }
-        String normalized = UserAccountService.normalizeEmail(email);
+        String normalized = UserAccountService.normalizeEmail(rawEmail);
         if (userRepository.existsByEmail(normalized) || userRepository.existsByUsername(normalized)) {
-            log.info("Administrador inicial já existe; nenhuma alteração realizada.");
+            log.info("Administrador {} já existe; nenhuma alteração realizada.", normalized);
             return;
         }
-        if (name == null || name.isBlank()) {
-            log.warn("INITIAL_ADMIN_NAME não informado; administrador inicial não foi criado.");
+        if (fullName == null || fullName.isBlank()) {
+            log.warn("Nome do administrador {} não informado; conta não foi criada.", normalized);
             return;
         }
         Role admin = roleRepository.findByName("ADMIN")
                 .orElseThrow(() -> new IllegalStateException("Perfil ADMIN não encontrado no banco."));
-        userAccountService.createWithTemporaryPassword(name, normalized, admin);
-        log.info("Administrador inicial criado com senha temporária e troca obrigatória no primeiro acesso.");
+        userAccountService.createWithTemporaryPassword(fullName, normalized, admin);
+        log.info("Administrador {} criado com senha temporária e troca obrigatória no primeiro acesso.", normalized);
     }
 }

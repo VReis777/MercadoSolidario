@@ -92,6 +92,9 @@ function PriorityPage() {
   const [ranking, setRanking] = useState<PriorityRanking | null>(null)
   const [familyNames, setFamilyNames] = useState<Record<number, string>>({})
   const [showDetails, setShowDetails] = useState(false)
+  const [inspect, setInspect] = useState<FamilyPriorityResult | null>(null)
+  const [dragId, setDragId] = useState<number | null>(null)
+  const [moving, setMoving] = useState(false)
   const [history, setHistory] = useState<FamilyPriorityResult[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -225,6 +228,47 @@ function PriorityPage() {
     }
   }
 
+  const manualContribution = (result: FamilyPriorityResult) =>
+    result.factors
+      .filter((factor) => factor.factorCode === 'MANUAL_TEAM_ADJUSTMENT')
+      .reduce((total, factor) => total + factor.contribution, 0)
+
+  const moveFamily = async (familyId: number, targetIndex: number) => {
+    if (!ranking || moving) return
+    const others = ranking.families.filter((f) => f.familyId !== familyId)
+    const currentIndex = ranking.families.findIndex((f) => f.familyId === familyId)
+    if (currentIndex === targetIndex || currentIndex === targetIndex - 1) return
+    const dragged = ranking.families.find((f) => f.familyId === familyId)
+    if (!dragged || dragged.score == null) return
+
+    const above = targetIndex > 0 ? others[targetIndex - 1] : null
+    const below = targetIndex < others.length ? others[targetIndex] : null
+    const aboveScore = above?.score ?? null
+    const belowScore = below?.score ?? null
+    if (aboveScore == null && belowScore == null) return
+
+    const target = aboveScore != null && belowScore != null
+      ? (aboveScore + belowScore) / 2
+      : aboveScore != null ? aboveScore + 1 : (belowScore ?? 0) - 1
+    const rawScore = dragged.score - manualContribution(dragged)
+    const adjustment = Math.round((target - rawScore) * 100) / 100
+    if (adjustment === manualContribution(dragged)) return
+
+    setMoving(true)
+    setError('')
+    try {
+      await priorityService.adjustPriority(familyId, adjustment,
+        `Reposicionada manualmente na fila pela equipe (posição ${currentIndex + 1} → ${targetIndex + 1})`)
+      await loadData()
+      setMessage(`${familyNames[familyId] || 'Família'} reposicionada na fila. O ajuste ficou registrado na auditoria.`)
+    } catch (moveError) {
+      setError(getApiErrorMessage(moveError, 'Não foi possível reposicionar a família.'))
+    } finally {
+      setMoving(false)
+      setDragId(null)
+    }
+  }
+
   const removeFactor = (index: number) => {
     setFactors((current) => current.filter((_, currentIndex) => currentIndex !== index))
   }
@@ -301,10 +345,10 @@ function PriorityPage() {
               <Typography color="text.secondary">
                 Regras {ranking.calculationVersion}. Quanto mais acima, maior a necessidade segundo os critérios — a decisão final continua sendo da equipe.
               </Typography>
-              {canManage && (
-                <Button variant="outlined" onClick={() => void recalculateRanking()} disabled={recalculating}>
-                  {recalculating ? 'Calculando...' : 'Ver prévia atualizada'}
-                </Button>
+              {canManage && ranking.families.length > 1 && (
+                <Typography variant="body2" color="text.secondary">
+                  Arraste uma família para cima ou para baixo se a equipe decidir — o ajuste fica registrado.
+                </Typography>
               )}
             </Stack>
             {ranking.families.length === 0 ? (
@@ -314,14 +358,25 @@ function PriorityPage() {
                 <Card sx={{ mb: 2 }}>
                   <CardContent sx={{ '&:last-child': { pb: 2 } }}>
                     <Stack spacing={0.5} divider={<Divider flexItem />}>
-                      {ranking.families.map((result) => {
+                      {ranking.families.map((result, index) => {
                         const matched = result.factors
                           .filter((factor) => factor.matched && factor.contribution > 0)
                           .slice(0, 3)
                         const excluded = (result.score ?? 0) < 0
                         return (
                           <Stack key={result.familyId} direction={{ xs: 'column', sm: 'row' }}
-                            alignItems={{ sm: 'center' }} gap={1} sx={{ py: 0.75 }}>
+                            alignItems={{ sm: 'center' }} gap={1}
+                            draggable={canManage && !moving}
+                            onDragStart={() => setDragId(result.familyId)}
+                            onDragOver={(e) => canManage && e.preventDefault()}
+                            onDrop={(e) => { e.preventDefault(); if (dragId != null) void moveFamily(dragId, index) }}
+                            onDragEnd={() => setDragId(null)}
+                            onClick={() => setInspect(result)}
+                            sx={{
+                              py: 0.75, cursor: 'pointer',
+                              bgcolor: dragId === result.familyId ? 'action.selected' : 'transparent',
+                              '&:hover': { bgcolor: 'action.hover' },
+                            }}>
                             <Typography sx={{ minWidth: 44, fontWeight: 800, color: excluded ? 'error.main' : 'primary.main' }}>
                               #{result.position}
                             </Typography>
@@ -470,6 +525,48 @@ function PriorityPage() {
           </Box>
         )}
       </Container>
+
+      <Dialog open={inspect !== null} onClose={() => setInspect(null)} fullWidth maxWidth="sm">
+        <DialogTitle>
+          {inspect ? (familyNames[inspect.familyId] || `Família #${inspect.familyId}`) : ''}
+        </DialogTitle>
+        <DialogContent>
+          {inspect && (
+            <>
+              <Typography variant="h5" fontWeight={800} sx={{ mb: 1 }}>
+                #{inspect.position} · {inspect.score?.toFixed(0)} pontos
+              </Typography>
+              {(inspect.score ?? 0) < 0 && (
+                <Alert severity="error" sx={{ mb: 2 }}>
+                  Marcada para avaliação da equipe — veja abaixo o critério que a colocou no fim da fila.
+                </Alert>
+              )}
+              <Stack spacing={1.5}>
+                {inspect.factors
+                  .filter((factor) => factor.matched)
+                  .sort((a, b) => Math.abs(b.contribution) - Math.abs(a.contribution))
+                  .map((factor) => (
+                    <Box key={factor.factorCode + factor.label}>
+                      <Typography fontWeight={700}>
+                        {factor.label} <Chip size="small" label={`${factor.contribution > 0 ? '+' : ''}${factor.contribution.toFixed(0)} pts`}
+                          color={factor.contribution > 0 ? 'success' : 'error'} variant="outlined" />
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        {factor.explanation} (valor: {factor.inputValue})
+                      </Typography>
+                    </Box>
+                  ))}
+                {inspect.factors.every((f) => !f.matched) && (
+                  <Alert severity="info">Nenhum critério de prioridade atendido.</Alert>
+                )}
+              </Stack>
+            </>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setInspect(null)}>Fechar</Button>
+        </DialogActions>
+      </Dialog>
 
       <Dialog open={dialogOpen} onClose={() => !saving && setDialogOpen(false)} fullWidth maxWidth="md" fullScreen={fullScreenDialog}>
         <Box component="form" onSubmit={submitConfiguration}>
