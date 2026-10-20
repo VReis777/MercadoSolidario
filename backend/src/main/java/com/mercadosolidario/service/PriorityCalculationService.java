@@ -224,6 +224,9 @@ public class PriorityCalculationService {
             case "EFFECTIVE_PER_CAPITA_INCOME" -> effectivePerCapitaIncome(family);
             case "NO_RENT_INCOME" -> Boolean.TRUE.equals(family.getPaysRent())
                 ? BigDecimal.ZERO : family.getTotalIncome();
+            case "SINGLE_PARENT_DEPENDENTS" -> isSingleParent(family)
+                ? BigDecimal.valueOf(family.getDependents() == null ? 0 : family.getDependents())
+                : BigDecimal.ZERO;
             case "HOUSEHOLD_SIZE" -> BigDecimal.valueOf(family.getHouseholdSize());
             case "DEPENDENTS" -> BigDecimal.valueOf(family.getDependents() == null ? 0 : family.getDependents());
             case "REQUEST_REASON" -> family.getRequestReason().name();
@@ -264,6 +267,19 @@ public class PriorityCalculationService {
             : new BigDecimal("1500");
         BigDecimal declared = family.getRentValue();
         return declared == null ? cap : declared.min(cap);
+    }
+
+    private boolean isSingleParent(Family family) {
+        String spouse = family.getSpouseName();
+        if (spouse == null || spouse.isBlank()) {
+            return true;
+        }
+        String normalized = spouse.trim().toLowerCase(Locale.ROOT)
+            .replace("ã", "a").replace("â", "a");
+        return normalized.equals("nao tem") || normalized.equals("nao")
+            || normalized.equals("nenhum") || normalized.equals("solteiro")
+            || normalized.equals("solteira") || normalized.equals("viuvo")
+            || normalized.equals("viuva");
     }
 
     private PriorityCalculationResponse unconfigured(Long familyId) {

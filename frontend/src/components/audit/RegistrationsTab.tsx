@@ -175,9 +175,14 @@ function RegistrationsTab({ campaignYear, canImport = false, initialOnlyWithHist
                         {priority?.position != null ? (
                           <Stack direction="row" spacing={0.5} alignItems="center">
                             <Chip size="small" color="secondary" label={`#${priority.position}`} />
-                            {priority.score != null && Number(priority.score) < 0 && (
+                            {priority.score != null && Number(priority.score) <= -500 && (
                               <Tooltip title="Regra de exclusão atendida — avaliação da equipe obrigatória">
                                 <Chip size="small" color="error" label="Revisão" />
+                              </Tooltip>
+                            )}
+                            {priority.score != null && Number(priority.score) < 0 && Number(priority.score) > -500 && (
+                              <Tooltip title="Acima da régua de renda — desce na lista e recebe marca de revisão">
+                                <Chip size="small" color="warning" label="*" />
                               </Tooltip>
                             )}
                             <Tooltip title="Ver critérios atendidos">
