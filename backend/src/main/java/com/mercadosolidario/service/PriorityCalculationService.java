@@ -221,6 +221,9 @@ public class PriorityCalculationService {
         return switch (factorCode) {
             case "TOTAL_INCOME" -> family.getTotalIncome();
             case "PER_CAPITA_INCOME" -> perCapitaIncome(family);
+            case "EFFECTIVE_PER_CAPITA_INCOME" -> effectivePerCapitaIncome(family);
+            case "NO_RENT_INCOME" -> Boolean.TRUE.equals(family.getPaysRent())
+                ? BigDecimal.ZERO : family.getTotalIncome();
             case "HOUSEHOLD_SIZE" -> BigDecimal.valueOf(family.getHouseholdSize());
             case "DEPENDENTS" -> BigDecimal.valueOf(family.getDependents() == null ? 0 : family.getDependents());
             case "REQUEST_REASON" -> family.getRequestReason().name();
@@ -235,6 +238,32 @@ public class PriorityCalculationService {
         BigDecimal income = family.getTotalIncome() == null
             ? BigDecimal.ZERO : family.getTotalIncome();
         return income.divide(BigDecimal.valueOf(people), 2, java.math.RoundingMode.HALF_UP);
+    }
+
+    private BigDecimal effectivePerCapitaIncome(Family family) {
+        int people = family.getHouseholdSize() == null || family.getHouseholdSize() < 1
+            ? 1 : family.getHouseholdSize();
+        BigDecimal income = family.getTotalIncome() == null
+            ? BigDecimal.ZERO : family.getTotalIncome();
+        BigDecimal net = income.subtract(rentDeduction(family));
+        if (net.signum() < 0) {
+            net = BigDecimal.ZERO;
+        }
+        return net.divide(BigDecimal.valueOf(people), 2, java.math.RoundingMode.HALF_UP);
+    }
+
+    private BigDecimal rentDeduction(Family family) {
+        if (!Boolean.TRUE.equals(family.getPaysRent())) {
+            return BigDecimal.ZERO;
+        }
+        int people = family.getHouseholdSize() == null || family.getHouseholdSize() < 1
+            ? 1 : family.getHouseholdSize();
+        BigDecimal cap = people <= 3 ? new BigDecimal("700")
+            : people == 4 ? new BigDecimal("900")
+            : people == 5 ? new BigDecimal("1100")
+            : new BigDecimal("1500");
+        BigDecimal declared = family.getRentValue();
+        return declared == null ? cap : declared.min(cap);
     }
 
     private PriorityCalculationResponse unconfigured(Long familyId) {

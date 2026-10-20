@@ -54,6 +54,8 @@ public class FamilyService {
         family.setAddress(request.getAddress());
         family.setHouseholdSize(request.getHouseholdSize());
         family.setTotalIncome(request.getTotalIncome());
+        family.setPaysRent(Boolean.TRUE.equals(request.getPaysRent()));
+        family.setRentValue(Boolean.TRUE.equals(request.getPaysRent()) ? request.getRentValue() : null);
         family.setRequestReason(request.getRequestReason());
         family.setOrigin(request.getOrigin());
         family.setReferrerName(request.getReferrerName());
@@ -131,6 +133,8 @@ public class FamilyService {
         family.setAddress(request.getAddress());
         family.setHouseholdSize(request.getHouseholdSize());
         family.setTotalIncome(request.getTotalIncome());
+        family.setPaysRent(Boolean.TRUE.equals(request.getPaysRent()));
+        family.setRentValue(Boolean.TRUE.equals(request.getPaysRent()) ? request.getRentValue() : null);
         family.setRequestReason(request.getRequestReason());
         family.setOrigin(request.getOrigin());
         family.setReferrerName(request.getReferrerName());
@@ -224,6 +228,8 @@ public class FamilyService {
             .dependents(family.getDependents())
             .householdSize(family.getHouseholdSize())
             .totalIncome(family.getTotalIncome())
+            .paysRent(family.getPaysRent())
+            .rentValue(family.getRentValue())
             .requestReason(family.getRequestReason())
             .origin(family.getOrigin())
             .referrerName(family.getReferrerName())

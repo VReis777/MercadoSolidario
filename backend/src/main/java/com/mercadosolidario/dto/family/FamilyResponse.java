@@ -27,6 +27,8 @@ public class FamilyResponse {
     private Integer dependents;
     private Integer householdSize;
     private BigDecimal totalIncome;
+    private Boolean paysRent;
+    private BigDecimal rentValue;
     private RequestReason requestReason;
     private FamilyOrigin origin;
     private String referrerName;

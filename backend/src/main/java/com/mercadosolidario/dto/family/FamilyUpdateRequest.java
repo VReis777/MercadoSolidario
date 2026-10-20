@@ -38,6 +38,11 @@ public class FamilyUpdateRequest {
     @DecimalMin(value = "0.00", message = "Renda familiar não pode ser negativa")
     private BigDecimal totalIncome;
 
+    private Boolean paysRent;
+
+    @DecimalMin(value = "0.00", message = "Valor do aluguel não pode ser negativo")
+    private BigDecimal rentValue;
+
     @NotNull(message = "Motivo da solicitação é obrigatório")
     private RequestReason requestReason;
 

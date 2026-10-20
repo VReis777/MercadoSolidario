@@ -49,6 +49,12 @@ public class Family {
     @Column(name = "total_income", nullable = false, precision = 12, scale = 2)
     private BigDecimal totalIncome;
 
+    @Column(name = "pays_rent")
+    private Boolean paysRent = false;
+
+    @Column(name = "rent_value", precision = 12, scale = 2)
+    private BigDecimal rentValue;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "request_reason", nullable = false)
     private RequestReason requestReason;

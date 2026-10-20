@@ -7,10 +7,12 @@ import {
   CardContent,
   Container,
   FormControl,
+  FormControlLabel,
   Grid,
   InputLabel,
   MenuItem,
   Select,
+  Switch,
   TextField,
   Typography,
 } from '@mui/material'
@@ -40,6 +42,8 @@ function BeneficiaryRegistrationPage() {
   const [spouseName, setSpouseName] = useState('')
   const [householdSize, setHouseholdSize] = useState('')
   const [totalIncome, setTotalIncome] = useState('')
+  const [paysRent, setPaysRent] = useState(false)
+  const [rentValue, setRentValue] = useState('')
   const [requestReason, setRequestReason] = useState('')
   const [observations, setObservations] = useState('')
   const [referrerName, setReferrerName] = useState('')
@@ -60,6 +64,8 @@ function BeneficiaryRegistrationPage() {
         spouseName: spouseName.trim() || undefined,
         householdSize: Number(householdSize),
         totalIncome: Number(totalIncome.replace(',', '.')),
+        paysRent,
+        rentValue: paysRent && rentValue.trim() ? Number(rentValue.replace(',', '.')) : undefined,
         requestReason,
         origin: referrerName.trim() ? 'INDICACAO' : 'CADASTRO_PROPRIO',
         referrerName: referrerName.trim() || undefined,
@@ -142,6 +148,17 @@ function BeneficiaryRegistrationPage() {
                 <TextField required fullWidth type="number" label="Renda familiar (R$)" value={totalIncome}
                   onChange={(e) => setTotalIncome(e.target.value)}
                   helperText="Se não tiver renda, informe 0" inputProps={{ min: 0, step: '0.01' }} />
+              </Grid>
+              <Grid item xs={12} sm={4}>
+                <FormControlLabel
+                  control={<Switch checked={paysRent} onChange={(e) => setPaysRent(e.target.checked)} />}
+                  label="Paga aluguel?" sx={{ mt: 1 }} />
+                {paysRent && (
+                  <TextField fullWidth type="number" label="Valor do aluguel (R$, opcional)" value={rentValue}
+                    onChange={(e) => setRentValue(e.target.value)}
+                    helperText="Se não souber informar, deixe em branco" inputProps={{ min: 0, step: '0.01' }}
+                    sx={{ mt: 1 }} />
+                )}
               </Grid>
               <Grid item xs={12} sm={4}>
                 <FormControl fullWidth required>

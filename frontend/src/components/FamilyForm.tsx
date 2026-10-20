@@ -11,7 +11,9 @@ import {
   MenuItem,
   Select,
   FormControl,
+  FormControlLabel,
   InputLabel,
+  Switch,
   Box,
   Alert,
   CircularProgress,
@@ -40,6 +42,8 @@ interface FormData {
   address: string
   householdSize: number
   totalIncome: string
+  paysRent: boolean
+  rentValue: string
   requestReason: string
   origin: string
   referrerName: string
@@ -54,6 +58,8 @@ const initialFormData: FormData = {
   address: '',
   householdSize: 1,
   totalIncome: '',
+  paysRent: false,
+  rentValue: '',
   requestReason: '',
   origin: '',
   referrerName: '',
@@ -77,6 +83,8 @@ function FamilyForm({ open, onClose, onSuccess, family }: FamilyFormProps) {
         address: family.address || '',
         householdSize: family.householdSize || 1,
         totalIncome: family.totalIncome?.toString() || '',
+        paysRent: Boolean(family.paysRent),
+        rentValue: family.rentValue?.toString() || '',
         requestReason: family.requestReason || '',
         origin: family.origin || '',
         referrerName: family.referrerName || '',
@@ -192,6 +200,7 @@ function FamilyForm({ open, onClose, onSuccess, family }: FamilyFormProps) {
         ...formData,
         householdSize: parseInt(formData.householdSize.toString()),
         totalIncome: parseFloat(formData.totalIncome),
+        rentValue: formData.paysRent && formData.rentValue.trim() ? parseFloat(formData.rentValue) : undefined,
       }
 
       if (family) {
@@ -333,6 +342,36 @@ function FamilyForm({ open, onClose, onSuccess, family }: FamilyFormProps) {
                 }}
               />
             </Grid>
+            <Grid item xs={12} sm={6}>
+              <FormControlLabel
+                control={
+                  <Switch checked={formData.paysRent}
+                    onChange={(e) => setFormData(prev => ({
+                      ...prev,
+                      paysRent: e.target.checked,
+                      rentValue: e.target.checked ? prev.rentValue : '',
+                    }))}
+                    disabled={loading} />
+                }
+                label="Paga aluguel?" />
+            </Grid>
+            {formData.paysRent && (
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Valor do aluguel (opcional)"
+                  type="number"
+                  value={formData.rentValue}
+                  onChange={handleChange('rentValue')}
+                  disabled={loading}
+                  inputProps={{ min: 0, step: 0.01 }}
+                  helperText="Em branco, usamos a estimativa padrão por tamanho da família"
+                  InputProps={{
+                    startAdornment: <Typography variant="body2">R$</Typography>,
+                  }}
+                />
+              </Grid>
+            )}
           </Grid>
         </FormSection>
 

@@ -175,6 +175,11 @@ function RegistrationsTab({ campaignYear, canImport = false, initialOnlyWithHist
                         {priority?.position != null ? (
                           <Stack direction="row" spacing={0.5} alignItems="center">
                             <Chip size="small" color="secondary" label={`#${priority.position}`} />
+                            {priority.score != null && Number(priority.score) < 0 && (
+                              <Tooltip title="Regra de exclusão atendida — avaliação da equipe obrigatória">
+                                <Chip size="small" color="error" label="Revisão" />
+                              </Tooltip>
+                            )}
                             <Tooltip title="Ver critérios atendidos">
                               <IconButton size="small" color="warning"
                                 onClick={() => setCriteriaDialog(priority)}
@@ -232,7 +237,8 @@ function RegistrationsTab({ campaignYear, canImport = false, initialOnlyWithHist
                   <Paper key={factor.label} variant="outlined" sx={{ p: 1.5 }}>
                     <Stack direction="row" justifyContent="space-between" alignItems="center">
                       <Typography fontWeight={700} variant="body2">{factor.label}</Typography>
-                      <Chip size="small" color="secondary" label={`+${factor.contribution}`} />
+                      <Chip size="small" color={Number(factor.contribution) < 0 ? 'error' : 'secondary'}
+                        label={`${Number(factor.contribution) > 0 ? '+' : ''}${factor.contribution}`} />
                     </Stack>
                     <Typography variant="caption" color="text.secondary">
                       {factor.explanation} (valor da família: {factor.inputValue})
