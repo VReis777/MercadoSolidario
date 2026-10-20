@@ -15,10 +15,6 @@ import StockPage from './pages/StockPage'
 import DonationsPage from './pages/DonationsPage'
 import PublicDonationPage from './pages/PublicDonationPage'
 import DistributionsPage from './pages/DistributionsPage'
-import PreviewRoute from './preview/PreviewRoute'
-import PreviewPublicPage from './preview/PreviewPublicPage'
-import PreviewAdminPage from './preview/PreviewAdminPage'
-import PreviewFamilyDetailPage from './preview/PreviewFamilyDetailPage'
 import RequestHelpPage from './pages/RequestHelpPage'
 import ServiceRequestsPage from './pages/ServiceRequestsPage'
 import UserManagementPage from './pages/UserManagementPage'
@@ -47,7 +43,7 @@ function AppContent() {
     '/login', '/entrar',
     '/set-password', '/definir-senha',
   ]
-  const showPublicNavbar = publicPaths.includes(pathname) || pathname.startsWith('/preview')
+  const showPublicNavbar = publicPaths.includes(pathname)
 
   const protectedRoutes: { legacy: string; path: string; element: ReactNode; roles?: string[] }[] = [
     { legacy: '/audit', path: '/painel', element: <AuditPage />, roles: ['ROLE_ADMIN', 'ROLE_RH_TESOURARIA', 'ROLE_DIACONO'] },
@@ -78,38 +74,7 @@ function AppContent() {
         <Route path="/set-password" element={<LegacyRedirect to="/definir-senha" />} />
         <Route path="/definir-senha" element={<SetPasswordPage />} />
         <Route path="/entrar" element={isAuthenticated ? <Navigate to="/painel" replace /> : <LoginPage />} />
-        <Route
-          path="/preview"
-          element={
-            <PreviewRoute>
-              <PreviewPublicPage />
-            </PreviewRoute>
-          }
-        />
-        <Route
-          path="/preview/request-help"
-          element={
-            <PreviewRoute>
-              <RequestHelpPage demoMode />
-            </PreviewRoute>
-          }
-        />
-        <Route
-          path="/preview/admin"
-          element={
-            <PreviewRoute>
-              <PreviewAdminPage />
-            </PreviewRoute>
-          }
-        />
-        <Route
-          path="/preview/admin/familias/:id"
-          element={
-            <PreviewRoute>
-              <PreviewFamilyDetailPage />
-            </PreviewRoute>
-          }
-        />
+        <Route path="/preview" element={<Navigate to="/" replace />} />
         <Route path="/login" element={<Navigate to="/entrar" replace />} />
         {protectedRoutes.flatMap(({ legacy, path, element, roles }) => [
           <Route key={legacy} path={legacy} element={<Navigate to={path} replace />} />,

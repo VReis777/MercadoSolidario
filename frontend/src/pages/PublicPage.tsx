@@ -1,7 +1,6 @@
 import { Button } from '@mui/material'
 import { useNavigate } from 'react-router-dom'
 import PublicLanding from '../components/PublicLanding'
-import { isVisualPreviewEnabled } from '../preview/previewEnabled'
 
 function PublicPage() {
   const navigate = useNavigate()
@@ -29,15 +28,6 @@ function PublicPage() {
           >
             Acesso administrativo
           </Button>
-          {isVisualPreviewEnabled() && (
-            <Button
-              variant="outlined"
-              onClick={() => navigate('/preview')}
-              sx={{ color: 'white', borderColor: 'white', mb: 1 }}
-            >
-              Prévia visual
-            </Button>
-          )}
         </>
       }
     />
