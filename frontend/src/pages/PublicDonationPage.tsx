@@ -11,6 +11,7 @@ import {
   TextField,
   Typography,
 } from '@mui/material'
+import { Link as RouterLink } from 'react-router-dom'
 import donationService, { PublicDonationResult } from '../services/donationService'
 import { getApiErrorMessage } from '../utils/apiError'
 import { newRequestReference } from '../utils/idempotency'
@@ -66,6 +67,7 @@ function PublicDonationPage() {
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: 'background.default', pb: 5 }}>
       <Container maxWidth="sm" sx={{ mt: { xs: 2, sm: 5 } }}>
+        <Button component={RouterLink} to="/" variant="text" sx={{ mb: 1 }}>← Voltar à página inicial</Button>
         <Card>
           <CardContent sx={{ p: { xs: 2, sm: 4 } }}>
             <Typography variant="h4" component="h1" color="primary" fontWeight={800} gutterBottom>
@@ -208,6 +210,9 @@ function PublicDonationPage() {
               </Stack>
             )}
             <Box sx={{ mt: 3, textAlign: 'center' }}>
+              <Button component={RouterLink} to="/" variant="outlined" fullWidth sx={{ mb: 1 }}>
+                Voltar à página inicial
+              </Button>
               <Button
                 component="a"
                 href="https://www.instagram.com/mercadosolidariopetropolis"

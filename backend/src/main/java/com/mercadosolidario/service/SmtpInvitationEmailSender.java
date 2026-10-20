@@ -84,6 +84,32 @@ public class SmtpInvitationEmailSender implements InvitationEmailSender {
         }
     }
 
+    @Override
+    public void sendWithAttachment(String to, String subject, String text,
+                                   String attachmentName, byte[] attachment, String contentType) {
+        JavaMailSender mailSender = mailSenderProvider.getIfAvailable();
+        if (!mailEnabled || mailSender == null || fromAddress.isBlank() || smtpPassword.isBlank()) {
+            throw new InvitationEmailUnavailableException("Envio de e-mail não configurado.");
+        }
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, attachment != null, "UTF-8");
+            helper.setFrom(fromAddress);
+            helper.setTo(to);
+            helper.setSubject(subject);
+            helper.setText(text);
+            if (attachment != null && attachmentName != null) {
+                helper.addAttachment(attachmentName,
+                    new org.springframework.core.io.ByteArrayResource(attachment),
+                    contentType != null ? contentType : "application/octet-stream");
+            }
+            mailSender.send(message);
+        } catch (MessagingException | MailException exception) {
+            log.error("E-mail could not be delivered (subject: {}).", subject, exception);
+            throw new InvitationEmailUnavailableException("Não foi possível enviar o e-mail. Verifique a configuração SMTP.");
+        }
+    }
+
     private void send(String to, String subject, String text) {
         sendInternal(to, null, subject, text);
     }

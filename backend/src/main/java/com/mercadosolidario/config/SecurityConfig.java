@@ -131,6 +131,9 @@ public class SecurityConfig {
 
                 // Sponsors are managed by ADMIN and RH/Tesouraria only.
                 .requestMatchers("/api/sponsors/**").hasAnyRole("ADMIN", "RH_TESOURARIA")
+
+                // Caixa/transparência: ADMIN e RH/Tesouraria (Pastor entra como ADMIN).
+                .requestMatchers("/api/cash/**").hasAnyRole("ADMIN", "RH_TESOURARIA")
                 
                 // RH/Tesouraria endpoints
                 .requestMatchers("/api/rh/**").hasAnyRole("ADMIN", "RH_TESOURARIA")

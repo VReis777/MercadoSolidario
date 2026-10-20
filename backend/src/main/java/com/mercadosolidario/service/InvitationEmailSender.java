@@ -11,4 +11,8 @@ public interface InvitationEmailSender {
 
     /** E-mail para vários destinatários (ex.: aviso à equipe). Lança InvitationEmailUnavailableException se não enviar. */
     void sendToMany(String[] to, String subject, String text);
+
+    /** E-mail com anexo opcional (ex.: comprovante de caixa). Lança InvitationEmailUnavailableException se não enviar. */
+    void sendWithAttachment(String to, String subject, String text,
+                            String attachmentName, byte[] attachment, String contentType);
 }

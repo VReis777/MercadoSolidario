@@ -70,6 +70,9 @@ public interface DonationRepository extends JpaRepository<Donation, Long> {
     @Query("SELECT SUM(d.amount) FROM Donation d WHERE d.status = :status")
     BigDecimal sumAmountByStatus(@Param("status") DonationStatus status);
 
+    @Query("SELECT COALESCE(SUM(d.amount), 0) FROM Donation d WHERE d.amount IS NOT NULL AND d.status IN (com.mercadosolidario.model.enums.DonationStatus.PAGA, com.mercadosolidario.model.enums.DonationStatus.CONFIRMADA_MANUALMENTE)")
+    BigDecimal sumConfirmedAmount();
+
     @Query("SELECT COUNT(d) FROM Donation d WHERE d.status = :status")
     Long countByStatus(@Param("status") DonationStatus status);
 }

@@ -30,6 +30,7 @@ import VolunteerActivismIcon from '@mui/icons-material/VolunteerActivism'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
 import donationService, { Donation, DonationStatus, PixConfiguration } from '../services/donationService'
+import cashService, { CashSummary } from '../services/cashService'
 import stockService, { Product } from '../services/stockService'
 import { getApiErrorMessage } from '../utils/apiError'
 import { newRequestReference } from '../utils/idempotency'
@@ -70,6 +71,12 @@ function DonationsPage() {
   const [merchantName, setMerchantName] = useState('')
   const [merchantCity, setMerchantCity] = useState('')
   const [clearPixKey, setClearPixKey] = useState(false)
+  const [cash, setCash] = useState<CashSummary | null>(null)
+  const [cashOpen, setCashOpen] = useState(false)
+  const [cashType, setCashType] = useState<'ENTRADA' | 'SAIDA'>('SAIDA')
+  const [cashAmount, setCashAmount] = useState('')
+  const [cashDescription, setCashDescription] = useState('')
+  const [cashFile, setCashFile] = useState<File | null>(null)
 
   const loadData = useCallback(async () => {
     setLoading(true)
@@ -81,6 +88,7 @@ function DonationsPage() {
       ])
       setDonations(donationResult)
       setProducts(productResult)
+      setCash(await cashService.summary().catch(() => null))
       if (isAdmin) {
         const pix = await donationService.getPixConfiguration()
         setConfiguration(pix)
@@ -168,6 +176,49 @@ function DonationsPage() {
     }
   }
 
+  const saveCashMovement = async () => {
+    const value = Number(cashAmount.replace(',', '.'))
+    if (!cashAmount.trim() || Number.isNaN(value) || value <= 0) {
+      setError('Informe um valor maior que zero.')
+      return
+    }
+    if (!cashDescription.trim()) {
+      setError('Descreva a movimentação.')
+      return
+    }
+    setSaving(true)
+    setError('')
+    try {
+      await cashService.create(cashType, value, cashDescription.trim(), cashFile || undefined)
+      setMessage(cashType === 'SAIDA'
+        ? 'Saída registrada e descontada do total. Se foi compra de itens da lista, lembre de cadastrar as quantidades no Estoque.'
+        : 'Entrada registrada e somada ao total em caixa.')
+      setCashOpen(false)
+      setCashAmount('')
+      setCashDescription('')
+      setCashFile(null)
+      await loadData()
+    } catch (saveError) {
+      setError(getApiErrorMessage(saveError, 'Não foi possível registrar a movimentação.'))
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const downloadCashAttachment = async (id: number) => {
+    try {
+      const { blob, filename } = await cashService.downloadAttachment(id)
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = filename
+      link.click()
+      URL.revokeObjectURL(url)
+    } catch (downloadError) {
+      setError(getApiErrorMessage(downloadError, 'Não foi possível baixar o anexo.'))
+    }
+  }
+
   const filtered = donations.filter((donation) => filter === 'TODAS' || donation.status === filter)
   const selectedProduct = products.find((product) => product.id === Number(productId))
 
@@ -221,6 +272,43 @@ function DonationsPage() {
               <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 1 }}>
                 Alterações são auditadas sem registrar a chave. A chave persistida fica restrita à configuração administrativa.
               </Typography>
+            </CardContent>
+          </Card>
+        )}
+
+        {cash && (
+          <Card sx={{ mb: 3 }}>
+            <CardContent>
+              <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ sm: 'center' }} gap={2}>
+                <Box>
+                  <Typography variant="h5" color="primary" gutterBottom>Caixa do projeto</Typography>
+                  <Typography variant="h4" fontWeight={700}>R$ {cash.total.toFixed(2)}</Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    Doações confirmadas R$ {cash.donationsTotal.toFixed(2)} · outras movimentações R$ {cash.movementsBalance.toFixed(2)}
+                  </Typography>
+                </Box>
+                <Button variant="contained" onClick={() => setCashOpen(true)}>Registrar entrada ou saída</Button>
+              </Stack>
+              {cash.movements.length > 0 && (
+                <Stack spacing={1} sx={{ mt: 2 }}>
+                  <Typography variant="subtitle2" color="text.secondary">Transparência — movimentações</Typography>
+                  {cash.movements.map((m) => (
+                    <Stack key={m.id} direction={{ xs: 'column', sm: 'row' }} alignItems={{ sm: 'center' }} gap={1}
+                      sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1, p: 1 }}>
+                      <Chip size="small" label={m.type === 'ENTRADA' ? 'Entrada' : 'Saída'}
+                        color={m.type === 'ENTRADA' ? 'success' : 'error'} />
+                      <Typography fontWeight={700}>{m.type === 'SAIDA' ? '-' : '+'} R$ {m.amount.toFixed(2)}</Typography>
+                      <Typography variant="body2" sx={{ flexGrow: 1 }}>{m.description}</Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {m.createdBy} · {new Date(m.createdAt).toLocaleString('pt-BR')}
+                      </Typography>
+                      {m.hasAttachment && (
+                        <Button size="small" onClick={() => void downloadCashAttachment(m.id)}>Baixar comprovante</Button>
+                      )}
+                    </Stack>
+                  ))}
+                </Stack>
+              )}
             </CardContent>
           </Card>
         )}
@@ -318,6 +406,45 @@ function DonationsPage() {
           </Grid>
         )}
       </Container>
+
+      <Dialog open={cashOpen} onClose={() => !saving && setCashOpen(false)} fullWidth maxWidth="sm" fullScreen={isMobile}>
+        <DialogTitle>Registrar movimentação de caixa</DialogTitle>
+        <DialogContent>
+          <Stack spacing={2} sx={{ mt: 1 }}>
+            <FormControl fullWidth>
+              <InputLabel>Tipo</InputLabel>
+              <Select value={cashType} label="Tipo" onChange={(e) => setCashType(e.target.value as 'ENTRADA' | 'SAIDA')}>
+                <MenuItem value="ENTRADA">Entrada (entrou dinheiro)</MenuItem>
+                <MenuItem value="SAIDA">Saída (gasto do projeto)</MenuItem>
+              </Select>
+            </FormControl>
+            <TextField required fullWidth type="number" label="Valor (R$)" value={cashAmount}
+              onChange={(e) => setCashAmount(e.target.value)} inputProps={{ min: 0.01, step: '0.01' }} />
+            <TextField required fullWidth multiline minRows={2} label="Descrição" value={cashDescription}
+              onChange={(e) => setCashDescription(e.target.value)}
+              helperText="Ex.: compra de itens da cesta, gasolina da coleta, doação em dinheiro"
+              inputProps={{ maxLength: 1000 }} />
+            <Button component="label" variant="outlined">
+              {cashFile ? `Anexo: ${cashFile.name}` : 'Anexar comprovante (PDF, JPG ou PNG — até 5 MB)'}
+              <input hidden type="file" accept="application/pdf,image/jpeg,image/png"
+                onChange={(e) => setCashFile(e.target.files?.[0] || null)} />
+            </Button>
+            {cashType === 'SAIDA' && (
+              <Alert severity="info">
+                Se a saída for compra de itens da lista, lembre de cadastrar as quantidades no Estoque
+                para o controle bater. O comprovante anexado vai por e-mail ao endereço do projeto
+                e fica disponível no quadro de transparência.
+              </Alert>
+            )}
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setCashOpen(false)} disabled={saving}>Cancelar</Button>
+          <Button variant="contained" onClick={() => void saveCashMovement()} disabled={saving}>
+            {saving ? 'Registrando...' : 'Registrar'}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       <Dialog open={Boolean(action)} onClose={() => !saving && setAction(null)} fullWidth maxWidth="xs" fullScreen={isMobile}>
         <DialogTitle>
