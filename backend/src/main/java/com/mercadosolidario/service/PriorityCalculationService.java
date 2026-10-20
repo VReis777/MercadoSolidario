@@ -260,6 +260,7 @@ public class PriorityCalculationService {
             case "EFFECTIVE_PER_CAPITA_INCOME" -> effectivePerCapitaIncome(family);
             case "NO_RENT_INCOME" -> Boolean.TRUE.equals(family.getPaysRent())
                 ? BigDecimal.ZERO : family.getTotalIncome();
+            case "NO_RENT_INCOME_SMALL" -> noRentSmallHouseholdIncome(family);
             case "SINGLE_PARENT_DEPENDENTS" -> isSingleParent(family)
                 ? BigDecimal.valueOf(family.getDependents() == null ? 0 : family.getDependents())
                 : BigDecimal.ZERO;
@@ -289,6 +290,19 @@ public class PriorityCalculationService {
             net = BigDecimal.ZERO;
         }
         return net.divide(BigDecimal.valueOf(people), 2, java.math.RoundingMode.HALF_UP);
+    }
+
+    /**
+     * Renda sem aluguel só vale para a régua de marca (*) quando a casa é pequena
+     * e tem dois potenciais provedores (sozinha ou casal com 1 filho).
+     * Pai/mãe solo com filhos e famílias de 4+ ficam de fora dessa marca.
+     */
+    private BigDecimal noRentSmallHouseholdIncome(Family family) {
+        int people = family.getHouseholdSize() == null ? 1 : family.getHouseholdSize();
+        if (Boolean.TRUE.equals(family.getPaysRent()) || isSingleParent(family) || people > 3) {
+            return BigDecimal.ZERO;
+        }
+        return family.getTotalIncome() == null ? BigDecimal.ZERO : family.getTotalIncome();
     }
 
     private BigDecimal rentDeduction(Family family) {

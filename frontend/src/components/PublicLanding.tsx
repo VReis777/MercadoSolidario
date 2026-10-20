@@ -98,7 +98,7 @@ function PublicLanding({ onPrimaryAction, onBenefitRequest, extraActions }: Publ
                 borderRadius: 1,
                 boxShadow: '0 3px 0 #FFC42E',
               }}>
-              solidário
+              Solidário
             </Typography>
           </Box>
           <Typography variant="h6" sx={{ fontWeight: 500, mt: 2, mb: 3 }}>

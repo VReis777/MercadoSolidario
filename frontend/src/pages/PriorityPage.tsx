@@ -44,6 +44,7 @@ const factorOptions = [
   { value: 'TOTAL_INCOME', label: 'Renda familiar (valor cadastrado)' },
   { value: 'EFFECTIVE_PER_CAPITA_INCOME', label: 'Renda por pessoa menos aluguel' },
   { value: 'NO_RENT_INCOME', label: 'Renda familiar sem pagar aluguel' },
+  { value: 'NO_RENT_INCOME_SMALL', label: 'Renda sem aluguel em casa pequena (≤3 pessoas, sem pai/mãe solo)' },
   { value: 'SINGLE_PARENT_DEPENDENTS', label: 'Pai/mãe solo — nº de dependentes' },
   { value: 'PER_CAPITA_INCOME', label: 'Renda por pessoa (renda ÷ pessoas da família)' },
   { value: 'HOUSEHOLD_SIZE', label: 'Número de pessoas no domicílio' },
