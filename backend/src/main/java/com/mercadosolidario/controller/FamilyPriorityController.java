@@ -30,4 +30,11 @@ public class FamilyPriorityController {
     public PriorityCalculationResponse calculate(@PathVariable Long id) {
         return calculationService.getFamilyPriority(id);
     }
+
+    @PostMapping("/{id}/priority/adjust")
+    public PriorityRankingResponse adjust(
+            @PathVariable Long id,
+            @jakarta.validation.Valid @RequestBody com.mercadosolidario.dto.priority.PriorityAdjustmentRequest request) {
+        return calculationService.adjust(id, request.adjustment(), request.note());
+    }
 }

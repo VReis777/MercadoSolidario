@@ -8,8 +8,10 @@ import {
 } from '@mui/material'
 import UploadIcon from '@mui/icons-material/Upload'
 import PriorityHighIcon from '@mui/icons-material/PriorityHigh'
+import TuneIcon from '@mui/icons-material/Tune'
 import campaignService, { CampaignRegistration, Page } from '../../services/campaignService'
 import priorityService, { FamilyPriorityResult } from '../../services/priorityService'
+import { authService } from '../../services/authService'
 import { getApiErrorMessage } from '../../utils/apiError'
 import RegistrationImportDialog from './RegistrationImportDialog'
 
@@ -47,6 +49,44 @@ function RegistrationsTab({ campaignYear, canImport = false, initialOnlyWithHist
   const [reload, setReload] = useState(0)
   const [priorityByFamily, setPriorityByFamily] = useState<Map<number, FamilyPriorityResult>>(new Map())
   const [criteriaDialog, setCriteriaDialog] = useState<FamilyPriorityResult | null>(null)
+  const canAdjust = authService.hasAnyRole(['ROLE_ADMIN', 'ROLE_RH_TESOURARIA'])
+  const [adjustDialog, setAdjustDialog] = useState<CampaignRegistration | null>(null)
+  const [adjustPoints, setAdjustPoints] = useState('')
+  const [adjustNote, setAdjustNote] = useState('')
+  const [adjustSaving, setAdjustSaving] = useState(false)
+  const [adjustError, setAdjustError] = useState('')
+
+  const applyPriorityRanking = (ranking: { status: string; families: FamilyPriorityResult[] }) => {
+    if (ranking.status === 'CALCULADA') {
+      setPriorityByFamily(new Map(ranking.families.map((f) => [f.familyId, f])))
+    }
+  }
+
+  const submitAdjustment = async () => {
+    if (!adjustDialog) return
+    const points = Number(adjustPoints.replace(',', '.'))
+    if (!adjustPoints.trim() || Number.isNaN(points)) {
+      setAdjustError('Informe os pontos do ajuste (ex.: 50 para subir, -50 para descer).')
+      return
+    }
+    if (!adjustNote.trim()) {
+      setAdjustError('A justificativa é obrigatória.')
+      return
+    }
+    setAdjustSaving(true)
+    setAdjustError('')
+    try {
+      const ranking = await priorityService.adjustPriority(adjustDialog.id, points, adjustNote.trim())
+      applyPriorityRanking(ranking)
+      setAdjustDialog(null)
+      setAdjustPoints('')
+      setAdjustNote('')
+    } catch (requestError) {
+      setAdjustError(getApiErrorMessage(requestError, 'Não foi possível registrar o ajuste.'))
+    } finally {
+      setAdjustSaving(false)
+    }
+  }
 
   useEffect(() => {
     priorityService.getRanking()
@@ -172,8 +212,9 @@ function RegistrationsTab({ campaignYear, canImport = false, initialOnlyWithHist
                       <TableCell>{new Date(f.createdAt).toLocaleDateString('pt-BR')}</TableCell>
                       <TableCell>{f.status ? familyStatusLabels[f.status] ?? f.status : '—'}</TableCell>
                       <TableCell>
+                        <Stack direction="row" spacing={0.5} alignItems="center">
                         {priority?.position != null ? (
-                          <Stack direction="row" spacing={0.5} alignItems="center">
+                          <>
                             <Chip size="small" color="secondary" label={`#${priority.position}`} />
                             {priority.score != null && Number(priority.score) <= -500 && (
                               <Tooltip title="Regra de exclusão atendida — avaliação da equipe obrigatória">
@@ -192,10 +233,20 @@ function RegistrationsTab({ campaignYear, canImport = false, initialOnlyWithHist
                                 <PriorityHighIcon fontSize="small" />
                               </IconButton>
                             </Tooltip>
-                          </Stack>
+                          </>
                         ) : (
                           <Typography variant="caption" color="text.secondary">—</Typography>
                         )}
+                        {canAdjust && (
+                          <Tooltip title="Ajustar prioridade manualmente">
+                            <IconButton size="small" color="primary"
+                              onClick={() => { setAdjustDialog(f); setAdjustPoints(''); setAdjustNote(''); setAdjustError('') }}
+                              aria-label={`Ajustar prioridade de ${f.responsibleName}`}>
+                              <TuneIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                        )}
+                        </Stack>
                       </TableCell>
                       <TableCell>
                         {f.historyMatch === 'CPF' && (
@@ -256,6 +307,33 @@ function RegistrationsTab({ campaignYear, canImport = false, initialOnlyWithHist
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setCriteriaDialog(null)}>Fechar</Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={adjustDialog !== null} onClose={() => setAdjustDialog(null)} maxWidth="xs" fullWidth>
+        <DialogTitle>Ajustar prioridade{adjustDialog ? ` — ${adjustDialog.responsibleName}` : ''}</DialogTitle>
+        <DialogContent dividers>
+          <Stack spacing={2} sx={{ mt: 0.5 }}>
+            <Typography variant="body2" color="text.secondary">
+              Use quando a situação da família mudou (ex.: ficou desempregada este mês,
+              melhorou de renda) ou por decisão da liderança. Pontos positivos sobem a
+              família na lista; negativos descem. O ajuste fica registrado na auditoria.
+            </Typography>
+            {adjustError && <Alert severity="error">{adjustError}</Alert>}
+            <TextField label="Pontos do ajuste" type="number" required fullWidth
+              value={adjustPoints} onChange={(e) => setAdjustPoints(e.target.value)}
+              helperText="Ex.: 50 sobe, -50 desce" disabled={adjustSaving} />
+            <TextField label="Justificativa" required fullWidth multiline minRows={2}
+              value={adjustNote} onChange={(e) => setAdjustNote(e.target.value)}
+              helperText="Obrigatória — aparece no critério 'Ajuste da equipe' e na auditoria"
+              disabled={adjustSaving} inputProps={{ maxLength: 1000 }} />
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setAdjustDialog(null)} disabled={adjustSaving}>Cancelar</Button>
+          <Button variant="contained" onClick={submitAdjustment} disabled={adjustSaving}>
+            {adjustSaving ? 'Salvando...' : 'Registrar ajuste'}
+          </Button>
         </DialogActions>
       </Dialog>
     </Stack>

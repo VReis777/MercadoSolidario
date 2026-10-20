@@ -94,6 +94,11 @@ const priorityService = {
     return response.data
   },
 
+  adjustPriority: async (familyId: number, adjustment: number, note: string): Promise<PriorityRanking> => {
+    const response = await api.post<PriorityRanking>(`/families/${familyId}/priority/adjust`, { adjustment, note })
+    return response.data
+  },
+
   getFamilyPriority: async (familyId: number): Promise<FamilyPriorityResult> => {
     const response = await api.get<FamilyPriorityResult>(`/families/${familyId}/priority`)
     return response.data

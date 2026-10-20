@@ -78,6 +78,18 @@ public class Family {
     @Column(name = "previous_beneficiary_notes", columnDefinition = "TEXT")
     private String previousBeneficiaryNotes;
 
+    @Column(name = "priority_adjustment", precision = 12, scale = 2)
+    private BigDecimal priorityAdjustment = BigDecimal.ZERO;
+
+    @Column(name = "priority_adjustment_note", columnDefinition = "TEXT")
+    private String priorityAdjustmentNote;
+
+    @Column(name = "priority_adjusted_by", length = 100)
+    private String priorityAdjustedBy;
+
+    @Column(name = "priority_adjusted_at")
+    private LocalDateTime priorityAdjustedAt;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "status")
     private FamilyStatus status = FamilyStatus.CADASTRADA;

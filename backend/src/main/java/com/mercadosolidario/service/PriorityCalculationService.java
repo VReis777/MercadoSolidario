@@ -125,6 +125,29 @@ public class PriorityCalculationService {
         );
     }
 
+    @Transactional
+    public PriorityRankingResponse adjust(Long familyId, BigDecimal adjustment, String note) {
+        Family family = familyRepository.findById(familyId)
+            .orElseThrow(() -> new ResourceNotFoundException("Família não encontrada"));
+        String actor = currentActor();
+        family.setPriorityAdjustment(adjustment);
+        family.setPriorityAdjustmentNote(note);
+        family.setPriorityAdjustedBy(actor);
+        family.setPriorityAdjustedAt(LocalDateTime.now());
+        familyRepository.save(family);
+
+        AuditLog audit = new AuditLog();
+        audit.setAction("PRIORITY_ADJUSTED");
+        audit.setEntityType("Family");
+        audit.setEntityId(family.getId());
+        audit.setDetails("{\"adjustment\":" + adjustment
+            + ",\"note\":\"" + note.replace("\"", "'").replace("\\", " ") + "\"}");
+        userRepository.findByUsername(actor).ifPresent(audit::setUser);
+        auditLogRepository.save(audit);
+
+        return calculateRanking();
+    }
+
     @Transactional(readOnly = true)
     public List<PriorityCalculationResponse> getHistory() {
         return historyRepository.findTop100ByOrderByCalculatedAtDescIdDesc()
@@ -174,13 +197,26 @@ public class PriorityCalculationService {
 
     private PriorityCalculationResponse calculate(
             Family family, PriorityConfiguration configuration, Integer position, boolean saveHistory) {
-        List<PriorityFactorResponse> factors = configuration.getRules().stream()
+        List<PriorityFactorResponse> factors = new ArrayList<>(configuration.getRules().stream()
             .filter(PriorityRule::isEnabled)
             .map(rule -> evaluate(family, rule))
-            .toList();
+            .toList());
         BigDecimal score = factors.stream()
             .map(PriorityFactorResponse::contribution)
             .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal adjustment = family.getPriorityAdjustment() == null
+            ? BigDecimal.ZERO : family.getPriorityAdjustment();
+        if (adjustment.signum() != 0) {
+            score = score.add(adjustment);
+            factors.add(new PriorityFactorResponse(
+                "MANUAL_ADJUSTMENT",
+                "Ajuste da equipe (Pastor/RH/Tesouraria)",
+                family.getPriorityAdjustmentNote() == null ? "—" : family.getPriorityAdjustmentNote(),
+                adjustment,
+                true,
+                "Decisão manual registrada por " + family.getPriorityAdjustedBy()
+                    + " em " + family.getPriorityAdjustedAt() + "."));
+        }
         String version = configuration.getCode() + "-v" + configuration.getVersionNumber();
         LocalDateTime calculatedAt = LocalDateTime.now();
         PriorityCalculationResponse response = new PriorityCalculationResponse(
