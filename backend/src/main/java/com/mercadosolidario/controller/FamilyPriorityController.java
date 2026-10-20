@@ -21,7 +21,7 @@ public class FamilyPriorityController {
     }
 
     @PostMapping("/priority/recalculate")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'RH_TESOURARIA')")
     public PriorityRankingResponse recalculateRanking() {
         return calculationService.calculateRanking();
     }

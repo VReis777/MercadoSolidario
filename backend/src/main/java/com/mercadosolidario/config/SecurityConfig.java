@@ -66,7 +66,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/auth/me").authenticated()
 
                 // Priority configuration and calculations are restricted at method level as well.
-                .requestMatchers("/api/priority/**").hasRole("ADMIN")
+                .requestMatchers("/api/priority/**").hasAnyRole("ADMIN", "RH_TESOURARIA")
                 .requestMatchers(HttpMethod.GET, "/api/families/priority", "/api/families/*/priority")
                     .hasAnyRole("ADMIN", "RH_TESOURARIA")
 

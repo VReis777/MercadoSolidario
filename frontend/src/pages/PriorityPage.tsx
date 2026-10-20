@@ -37,10 +37,14 @@ import priorityService, {
   FamilyPriorityResult,
   PriorityRanking,
 } from '../services/priorityService'
+import familyService from '../services/familyService'
 import { getApiErrorMessage } from '../utils/apiError'
 
 const factorOptions = [
   { value: 'TOTAL_INCOME', label: 'Renda familiar (valor cadastrado)' },
+  { value: 'EFFECTIVE_PER_CAPITA_INCOME', label: 'Renda por pessoa menos aluguel' },
+  { value: 'NO_RENT_INCOME', label: 'Renda familiar sem pagar aluguel' },
+  { value: 'SINGLE_PARENT_DEPENDENTS', label: 'Pai/mãe solo — nº de dependentes' },
   { value: 'PER_CAPITA_INCOME', label: 'Renda por pessoa (renda ÷ pessoas da família)' },
   { value: 'HOUSEHOLD_SIZE', label: 'Número de pessoas no domicílio' },
   { value: 'DEPENDENTS', label: 'Número de dependentes' },
@@ -83,9 +87,11 @@ function PriorityPage() {
   const navigate = useNavigate()
   const { user } = useAuth()
   const fullScreenDialog = useMediaQuery('(max-width:599px)')
-  const isAdmin = Boolean(user?.roles.includes('ROLE_ADMIN'))
+  const canManage = Boolean(user?.roles.some((role) => ['ROLE_ADMIN', 'ROLE_RH_TESOURARIA'].includes(role)))
   const [configurations, setConfigurations] = useState<PriorityConfiguration[]>([])
   const [ranking, setRanking] = useState<PriorityRanking | null>(null)
+  const [familyNames, setFamilyNames] = useState<Record<number, string>>({})
+  const [showDetails, setShowDetails] = useState(false)
   const [history, setHistory] = useState<FamilyPriorityResult[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -104,20 +110,26 @@ function PriorityPage() {
     setLoading(true)
     setError('')
     try {
-      const [calculationResult, configurationResult, historyResult] = await Promise.all([
+      const [calculationResult, configurationResult, historyResult, familyResult] = await Promise.all([
         priorityService.getRanking(),
-        isAdmin ? priorityService.listConfigurations() : Promise.resolve([]),
-        isAdmin ? priorityService.getHistory() : Promise.resolve([]),
+        canManage ? priorityService.listConfigurations() : Promise.resolve([]),
+        canManage ? priorityService.getHistory() : Promise.resolve([]),
+        familyService.search({ size: 500 }).catch(() => null),
       ])
       setRanking(calculationResult)
       setConfigurations(configurationResult)
       setHistory(historyResult)
+      if (familyResult) {
+        const names: Record<number, string> = {}
+        for (const family of familyResult.content || []) names[family.id] = family.responsibleName
+        setFamilyNames(names)
+      }
     } catch (loadError) {
       setError(getApiErrorMessage(loadError, 'Não foi possível carregar as informações de prioridade.'))
     } finally {
       setLoading(false)
     }
-  }, [isAdmin])
+  }, [canManage])
 
   useEffect(() => {
     void loadData()
@@ -225,7 +237,7 @@ function PriorityPage() {
             <ArrowBackIcon />
           </IconButton>
           <Typography variant="h6" sx={{ flexGrow: 1 }}>Prioridade configurável</Typography>
-          <Chip label={isAdmin ? 'ADMIN' : 'Consulta'} sx={{ color: 'white', bgcolor: 'rgba(255,255,255,0.18)' }} />
+          <Chip label={canManage ? 'Equipe' : 'Consulta'} sx={{ color: 'white', bgcolor: 'rgba(255,255,255,0.18)' }} />
         </Toolbar>
       </Box>
 
@@ -247,7 +259,7 @@ function PriorityPage() {
               <Typography color="text.secondary">
                 A prioridade ainda não foi configurada pelos responsáveis do projeto.
               </Typography>
-              {isAdmin && (
+              {canManage && (
                 <Button sx={{ mt: 2 }} variant="contained" startIcon={<AddIcon />} onClick={() => startNewConfiguration()}>
                   Criar configuração inativa
                 </Button>
@@ -261,7 +273,7 @@ function PriorityPage() {
               <Typography color="text.secondary">
                 Regra {ranking.calculationVersion}. Os resultados só serão calculados quando uma pessoa autorizada solicitar o recálculo.
               </Typography>
-              {isAdmin && (
+              {canManage && (
                 <Button sx={{ mt: 2 }} variant="contained" onClick={() => void recalculateRanking()} disabled={recalculating}>
                   {recalculating ? 'Calculando...' : 'Calcular ranking técnico'}
                 </Button>
@@ -275,7 +287,7 @@ function PriorityPage() {
               <Typography color="text.secondary">
                 Há famílias novas ou alteradas desde o último cálculo. O ranking anterior não será apresentado como atual.
               </Typography>
-              {isAdmin && (
+              {canManage && (
                 <Button sx={{ mt: 2 }} variant="contained" onClick={() => void recalculateRanking()} disabled={recalculating}>
                   {recalculating ? 'Calculando...' : 'Recalcular ranking técnico'}
                 </Button>
@@ -284,27 +296,71 @@ function PriorityPage() {
           </Card>
         ) : (
           <>
-            <Typography variant="h5" color="primary" gutterBottom>Resultados técnicos</Typography>
+            <Typography variant="h5" color="primary" gutterBottom>Prévia da fila de prioridade</Typography>
             <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" gap={1} sx={{ mb: 2 }}>
               <Typography color="text.secondary">
-                Versão {ranking.calculationVersion}. Posições iguais indicam pontuações iguais; a ordem não representa uma decisão de concessão.
+                Regras {ranking.calculationVersion}. Quanto mais acima, maior a necessidade segundo os critérios — a decisão final continua sendo da equipe.
               </Typography>
-              {isAdmin && (
+              {canManage && (
                 <Button variant="outlined" onClick={() => void recalculateRanking()} disabled={recalculating}>
-                  {recalculating ? 'Calculando...' : 'Recalcular ranking'}
+                  {recalculating ? 'Calculando...' : 'Ver prévia atualizada'}
                 </Button>
               )}
             </Stack>
             {ranking.families.length === 0 ? (
               <Alert severity="info">Não há famílias para calcular nesta consulta.</Alert>
             ) : (
+              <>
+                <Card sx={{ mb: 2 }}>
+                  <CardContent sx={{ '&:last-child': { pb: 2 } }}>
+                    <Stack spacing={0.5} divider={<Divider flexItem />}>
+                      {ranking.families.map((result) => {
+                        const matched = result.factors
+                          .filter((factor) => factor.matched && factor.contribution > 0)
+                          .slice(0, 3)
+                        const excluded = (result.score ?? 0) < 0
+                        return (
+                          <Stack key={result.familyId} direction={{ xs: 'column', sm: 'row' }}
+                            alignItems={{ sm: 'center' }} gap={1} sx={{ py: 0.75 }}>
+                            <Typography sx={{ minWidth: 44, fontWeight: 800, color: excluded ? 'error.main' : 'primary.main' }}>
+                              #{result.position}
+                            </Typography>
+                            <Typography sx={{ flexGrow: 1, fontWeight: 600 }}>
+                              {familyNames[result.familyId] || `Família #${result.familyId}`}
+                            </Typography>
+                            <Typography variant="body2" sx={{ minWidth: 86 }}>
+                              {result.score?.toFixed(0)} pts
+                            </Typography>
+                            <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap>
+                              {excluded
+                                ? <Chip size="small" color="error" label="Avaliação da equipe" />
+                                : matched.map((factor) => (
+                                    <Chip key={factor.factorCode + factor.label} size="small" variant="outlined"
+                                      label={factor.label} />
+                                  ))}
+                              {matched.length === 0 && !excluded && (
+                                <Chip size="small" variant="outlined" label="Sem critério de prioridade" />
+                              )}
+                            </Stack>
+                          </Stack>
+                        )
+                      })}
+                    </Stack>
+                  </CardContent>
+                </Card>
+                <Button variant="text" onClick={() => setShowDetails((v) => !v)} sx={{ mb: 2 }}>
+                  {showDetails ? 'Ocultar explicação detalhada por família' : 'Ver explicação detalhada por família'}
+                </Button>
+              </>
+            )}
+            {showDetails && ranking.families.length > 0 && (
               <Grid container spacing={2}>
                 {ranking.families.map((result) => (
                   <Grid item xs={12} md={6} key={result.familyId}>
                     <Card>
                       <CardContent>
                         <Stack direction="row" justifyContent="space-between" alignItems="center" gap={1}>
-                          <Typography variant="h6">Família #{result.familyId}</Typography>
+                          <Typography variant="h6">{familyNames[result.familyId] || `Família #${result.familyId}`}</Typography>
                           <Chip label={`Posição técnica ${result.position}`} color="primary" variant="outlined" />
                         </Stack>
                         <Typography variant="h4" sx={{ my: 1, fontWeight: 800 }}>
@@ -336,7 +392,7 @@ function PriorityPage() {
           </>
         )}
 
-        {isAdmin && (
+        {canManage && (
           <Box sx={{ mt: 4 }}>
             <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'stretch', sm: 'center' }} gap={1} sx={{ mb: 2 }}>
               <Box>
@@ -384,7 +440,7 @@ function PriorityPage() {
             )}
           </Box>
         )}
-        {isAdmin && history.length > 0 && (
+        {canManage && history.length > 0 && (
           <Box sx={{ mt: 4 }}>
             <Typography variant="h5" color="primary" gutterBottom>Histórico de cálculos</Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>

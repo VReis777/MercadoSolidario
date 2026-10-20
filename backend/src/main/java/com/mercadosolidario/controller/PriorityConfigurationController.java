@@ -15,7 +15,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/priority/configuration")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('ADMIN')")
+@PreAuthorize("hasAnyRole('ADMIN', 'RH_TESOURARIA')")
 public class PriorityConfigurationController {
 
     private final PriorityConfigurationService configurationService;
