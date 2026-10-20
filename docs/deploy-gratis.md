@@ -23,6 +23,7 @@ Observação: o backend gratuito do Render "dorme" após ~15 min sem acesso e ac
    - `CORS_ALLOWED_ORIGINS` = `https://mercadosolidario.vercel.app`
    - `APP_FRONTEND_BASE_URL` = `https://mercadosolidario.vercel.app` (links de senha nos e-mails)
    - `INITIAL_ADMIN_EMAIL` = `h.reis777@gmail.com`, `INITIAL_ADMIN_NAME` = `Victor`
+   - `INITIAL_ADMIN2_EMAIL` = `mevampetropolis@hotmail.com`, `INITIAL_ADMIN2_NAME` = `Pr. Filipe Molina`
    - `MAIL_USERNAME` = `mevammercadosolidario@gmail.com`
    - `MAIL_PASSWORD` = senha de app do Gmail
    - `MAIL_FROM` = `mevammercadosolidario@gmail.com`
