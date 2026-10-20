@@ -36,6 +36,7 @@ import stockService, {
   MovementType,
   Product,
   ProductRequest,
+  StockImportChange,
   StockMovement,
   StockSummary,
 } from '../services/stockService'
@@ -80,6 +81,9 @@ function StockPage() {
   const [confirmProduct, setConfirmProduct] = useState<Product | null>(null)
   const [showProductHistory, setShowProductHistory] = useState<number | null>(null)
   const [productHistory, setProductHistory] = useState<StockMovement[]>([])
+  const [importFile, setImportFile] = useState<File | null>(null)
+  const [importPreview, setImportPreview] = useState<StockImportChange[] | null>(null)
+  const [importing, setImporting] = useState(false)
 
   const loadStock = useCallback(async () => {
     setLoading(true)
@@ -103,6 +107,53 @@ function StockPage() {
   useEffect(() => {
     void loadStock()
   }, [loadStock])
+
+  const exportWorkbook = async () => {
+    setError('')
+    try {
+      const blob = await stockService.exportWorkbook()
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = 'estoque-mercado-solidario.xlsx'
+      link.click()
+      URL.revokeObjectURL(url)
+    } catch (exportError) {
+      setError(getApiErrorMessage(exportError, 'Não foi possível exportar a planilha.'))
+    }
+  }
+
+  const previewImport = async (file: File) => {
+    setImporting(true)
+    setError('')
+    try {
+      setImportFile(file)
+      setImportPreview(await stockService.importPreview(file))
+    } catch (importError) {
+      setError(getApiErrorMessage(importError, 'Não foi possível ler a planilha.'))
+      setImportFile(null)
+    } finally {
+      setImporting(false)
+    }
+  }
+
+  const confirmImport = async () => {
+    if (!importFile) return
+    setImporting(true)
+    setError('')
+    try {
+      const result = await stockService.importConfirm(importFile)
+      const warnings = result.warnings.length ? ` Avisos: ${result.warnings.join(' ')}` : ''
+      setMessage(`${result.changed} produto(s) atualizados pela planilha.${warnings}`)
+      setImportPreview(null)
+      setImportFile(null)
+      await loadStock()
+    } catch (importError) {
+      setError(getApiErrorMessage(importError, 'Não foi possível importar a planilha.'))
+    } finally {
+      setImporting(false)
+    }
+  }
 
   const openProductForm = (product?: Product) => {
     setEditingProduct(product || null)
@@ -234,7 +285,23 @@ function StockPage() {
                 </CardContent></Card>
               </Grid>
             </Grid>
-            <Typography variant="h5" color="primary" gutterBottom>Produtos</Typography>
+            <Stack direction={{ xs: 'column', sm: 'row' }} alignItems={{ sm: 'center' }} justifyContent="space-between" gap={1} sx={{ mb: 2 }}>
+              <Typography variant="h5" color="primary">Produtos</Typography>
+              {canEdit && (
+                <Stack direction="row" spacing={1}>
+                  <Button variant="outlined" onClick={() => void exportWorkbook()}>Exportar planilha</Button>
+                  <Button variant="outlined" component="label" disabled={importing}>
+                    {importing ? 'Lendo...' : 'Importar planilha'}
+                    <input hidden type="file" accept=".xlsx,.xls"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0]
+                        e.target.value = ''
+                        if (file) void previewImport(file)
+                      }} />
+                  </Button>
+                </Stack>
+              )}
+            </Stack>
             {products.length === 0 ? (
               <Alert severity="info">Nenhum produto cadastrado ainda.</Alert>
             ) : (
@@ -419,6 +486,38 @@ function StockPage() {
         <DialogActions>
           <Button onClick={() => setConfirmProduct(null)} disabled={saving}>Cancelar</Button>
           <Button variant="contained" onClick={() => void toggleProductStatus()} disabled={saving}>Confirmar</Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={importPreview !== null} onClose={() => !importing && setImportPreview(null)} fullWidth maxWidth="sm" fullScreen={isMobileDialog}>
+        <DialogTitle>Confirmar importação da planilha</DialogTitle>
+        <DialogContent>
+          {importPreview && importPreview.length === 0 ? (
+            <Alert severity="info">Nenhuma alteração encontrada. Preencha a coluna "Nova quantidade" na planilha exportada.</Alert>
+          ) : (
+            <>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                Confira se são realmente estes itens que mudaram:
+              </Typography>
+              <Stack spacing={1}>
+                {importPreview?.map((change) => (
+                  <Box key={change.productId} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1, p: 1 }}>
+                    <Typography fontWeight={700}>{change.name} ({change.unit})</Typography>
+                    <Typography variant="body2">
+                      {change.currentQuantity} → <strong>{change.newQuantity}</strong> ({change.delta > 0 ? '+' : ''}{change.delta})
+                    </Typography>
+                  </Box>
+                ))}
+              </Stack>
+            </>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setImportPreview(null)} disabled={importing}>Cancelar</Button>
+          <Button variant="contained" onClick={() => void confirmImport()}
+            disabled={importing || !importPreview || importPreview.length === 0}>
+            {importing ? 'Importando...' : 'Confirmar alterações'}
+          </Button>
         </DialogActions>
       </Dialog>
     </Box>

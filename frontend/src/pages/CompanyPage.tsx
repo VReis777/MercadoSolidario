@@ -25,6 +25,7 @@ import { getApiErrorMessage } from '../utils/apiError'
 const interestOptions = [
   { value: 'PATROCINAR', label: 'Quero patrocinar uma ação' },
   { value: 'DOAR_MAIS', label: 'Quero doar valores ou produtos' },
+  { value: 'DOAR_ITENS', label: 'Quero doar itens da lista de compras' },
   { value: 'SER_PARCEIRO', label: 'Quero ser parceiro do projeto' },
 ]
 

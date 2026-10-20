@@ -52,6 +52,15 @@ export interface ProductRequest {
   notes?: string
 }
 
+export interface StockImportChange {
+  productId: number
+  name: string
+  unit: string
+  currentQuantity: number
+  newQuantity: number
+  delta: number
+}
+
 export interface MovementRequest {
   productId: number
   type: MovementType
@@ -104,6 +113,27 @@ const stockService = {
 
   registerMovement: async (request: MovementRequest): Promise<StockMovement> => {
     const response = await api.post<StockMovement>('/stock/movements', request)
+    return response.data
+  },
+  exportWorkbook: async (): Promise<Blob> => {
+    const response = await api.get('/stock/export', { responseType: 'blob' })
+    return response.data
+  },
+  importPreview: async (file: File): Promise<StockImportChange[]> => {
+    const form = new FormData()
+    form.append('file', file)
+    const response = await api.post<StockImportChange[]>('/stock/import/preview', form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+    return response.data
+  },
+  importConfirm: async (file: File): Promise<{ changed: number; warnings: string[] }> => {
+    const form = new FormData()
+    form.append('file', file)
+    const response = await api.post('/stock/import/confirm', form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+    return response.data
     return response.data
   },
 }

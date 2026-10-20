@@ -3,9 +3,11 @@ package com.mercadosolidario.service;
 import com.mercadosolidario.dto.publicrequest.CompanyContactRequest;
 import com.mercadosolidario.dto.publicrequest.SiteInfoResponse;
 import com.mercadosolidario.dto.publicrequest.SiteInfoUpdateRequest;
+import com.mercadosolidario.model.Product;
 import com.mercadosolidario.model.Sponsor;
 import com.mercadosolidario.model.SystemSetting;
 import com.mercadosolidario.model.enums.SponsorType;
+import com.mercadosolidario.repository.ProductRepository;
 import com.mercadosolidario.repository.SponsorRepository;
 import com.mercadosolidario.repository.SystemSettingRepository;
 import com.mercadosolidario.repository.UserRepository;
@@ -32,9 +34,11 @@ public class PublicCompanyService {
     private static final Map<String, String> INTEREST_LABELS = Map.of(
         "PATROCINAR", "Quero patrocinar uma ação",
         "DOAR_MAIS", "Quero doar valores ou produtos",
+        "DOAR_ITENS", "Quero doar itens da lista de compras",
         "SER_PARCEIRO", "Quero ser parceiro do projeto");
 
     private final SponsorRepository sponsorRepository;
+    private final ProductRepository productRepository;
     private final SystemSettingRepository settingRepository;
     private final UserRepository userRepository;
     private final InvitationEmailSender emailSender;
@@ -104,11 +108,29 @@ public class PublicCompanyService {
         if (recipients.isEmpty()) {
             return false;
         }
+        boolean itemDonation = "DOAR_ITENS".equals(request.getInterest().trim());
         try {
+            StringBuilder items = new StringBuilder();
+            if (itemDonation) {
+                items.append("\nITENS NECESSÁRIOS NO MOMENTO (lista do estoque):\n");
+                List<Product> products = productRepository.findByActiveTrue();
+                if (products.isEmpty()) {
+                    items.append("- nenhum item cadastrado ainda\n");
+                } else {
+                    products.stream()
+                        .sorted((a, b) -> a.getName().compareToIgnoreCase(b.getName()))
+                        .forEach(p -> items.append("- ").append(p.getName())
+                            .append(" (").append(p.getUnit()).append(") — em estoque: ")
+                            .append(p.getCurrentQuantity() == null ? 0 : p.getCurrentQuantity())
+                            .append('\n'));
+                }
+            }
             emailSender.sendToMany(recipients.toArray(String[]::new),
-                "Empresa interessada em apoiar - Mercado Solidário",
+                itemDonation
+                    ? "URGENTE: empresa quer doar itens - Mercado Solidário"
+                    : "Empresa interessada em apoiar - Mercado Solidário",
                 """
-                Uma empresa pediu contato pela página "Sou empresa".
+                %sUma empresa pediu contato pela página "Sou empresa".
 
                 Empresa: %s
                 Responsável: %s
@@ -119,9 +141,15 @@ public class PublicCompanyService {
 
                 Mensagem:
                 %s
-
+                %s
                 O registro já está na lista de Patrocinadores e Parceiros do sistema.
                 """.formatted(
+                    itemDonation
+                        ? "ATENÇÃO: a empresa quer doar ITENS. Entrem em contato com urgência " +
+                          "(e-mail/WhatsApp) ANTES da compra, para combinar quais itens e " +
+                          "quantidades a lista realmente precisa — evitando itens fora da lista " +
+                          "ou em excesso.\n\n"
+                        : "",
                     request.getCompanyName(),
                     request.getResponsibleName(),
                     request.getEmail(),
@@ -129,7 +157,8 @@ public class PublicCompanyService {
                     blank(request.getWhatsapp()),
                     interestLabel,
                     request.getMessage() != null && !request.getMessage().isBlank()
-                        ? request.getMessage() : "(sem mensagem)"));
+                        ? request.getMessage() : "(sem mensagem)",
+                    items));
             return true;
         } catch (RuntimeException exception) {
             log.warn("Company contact saved but team notification e-mail was not sent.");
