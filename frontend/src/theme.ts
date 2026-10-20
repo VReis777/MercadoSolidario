@@ -1,11 +1,13 @@
 import { createTheme } from '@mui/material/styles'
 
-// Paleta Azul Institucional + Turquesa
+// Paleta da identidade visual (logo do Instagram):
+// azul-marinho "Mercado", turquesa "solidário" e amarelo do círculo.
 const paletteInstitucional = {
-  azulProfundo: '#183B56',
-  azulMedio: '#247BA0',
-  turquesa: '#55B8A9',
-  fundoClaro: '#F4F7FA',
+  azulProfundo: '#1B2A6B',
+  azulMedio: '#2E4FA3',
+  turquesa: '#19B8D2',
+  amarelo: '#FFC42E',
+  fundoClaro: '#FBF9F1',
   superficieBranca: '#FFFFFF',
 }
 
@@ -14,22 +16,22 @@ const lightTheme = createTheme({
     mode: 'light',
     primary: {
       main: paletteInstitucional.azulProfundo,
-      dark: '#0F2A3E',
+      dark: '#101C4A',
       light: paletteInstitucional.azulMedio,
       contrastText: '#ffffff',
     },
     secondary: {
       main: paletteInstitucional.turquesa,
-      dark: '#3A9A8E',
-      light: '#7BCFC2',
-      contrastText: '#183B56',
+      dark: '#0E93A8',
+      light: '#5ED5E7',
+      contrastText: '#1B2A6B',
     },
     background: {
       default: paletteInstitucional.fundoClaro,
       paper: paletteInstitucional.superficieBranca,
     },
     text: {
-      primary: '#183B56',
+      primary: '#1B2A6B',
       secondary: '#4A5568',
     },
     divider: '#E2E8F0',
@@ -40,8 +42,8 @@ const lightTheme = createTheme({
     },
     warning: {
       main: '#B45309',
-      light: '#F59E0B',
-      dark: '#92400E',
+      light: paletteInstitucional.amarelo,
+      dark: '#E0A800',
     },
     error: {
       main: '#DC2626',
@@ -90,17 +92,24 @@ const lightTheme = createTheme({
   },
 })
 
+// Tema escuro mantido na paleta anterior (Azul Institucional + Turquesa).
+const paletteDark = {
+  azulProfundo: '#183B56',
+  azulMedio: '#247BA0',
+  turquesa: '#55B8A9',
+}
+
 const darkBaseTheme = createTheme({
   palette: {
     mode: 'dark',
     primary: {
-      main: paletteInstitucional.azulMedio,
-      dark: paletteInstitucional.azulProfundo,
+      main: paletteDark.azulMedio,
+      dark: paletteDark.azulProfundo,
       light: '#3A9AC0',
       contrastText: '#ffffff',
     },
     secondary: {
-      main: paletteInstitucional.turquesa,
+      main: paletteDark.turquesa,
       dark: '#3A9A8E',
       light: '#7BCFC2',
       contrastText: '#183B56',
@@ -130,7 +139,7 @@ const darkBaseTheme = createTheme({
       dark: '#EF4444',
     },
     info: {
-      main: paletteInstitucional.azulMedio,
+      main: paletteDark.azulMedio,
       light: '#4BBAD6',
       dark: '#1A5C7A',
     },
@@ -177,7 +186,7 @@ const darkTheme = createTheme(darkBaseTheme, {
       defaultProps: { enableColorOnDark: true },
       styleOverrides: {
         colorPrimary: {
-          backgroundColor: paletteInstitucional.azulProfundo,
+          backgroundColor: paletteDark.azulProfundo,
           color: '#F4F7FA',
         },
       },

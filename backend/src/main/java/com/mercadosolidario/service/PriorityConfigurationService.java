@@ -32,7 +32,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class PriorityConfigurationService {
 
-    private static final Set<String> NUMERIC_FACTORS = Set.of("TOTAL_INCOME", "HOUSEHOLD_SIZE", "DEPENDENTS");
+    private static final Set<String> NUMERIC_FACTORS = Set.of("TOTAL_INCOME", "PER_CAPITA_INCOME", "HOUSEHOLD_SIZE", "DEPENDENTS");
     private static final Set<String> ENUM_FACTORS = Set.of("REQUEST_REASON", "ORIGIN");
     private static final Set<String> NUMERIC_OPERATORS = Set.of("EQ", "NE", "GT", "GTE", "LT", "LTE");
     private static final Set<String> ENUM_OPERATORS = Set.of("EQ", "NE");

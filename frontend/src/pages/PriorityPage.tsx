@@ -41,6 +41,7 @@ import { getApiErrorMessage } from '../utils/apiError'
 
 const factorOptions = [
   { value: 'TOTAL_INCOME', label: 'Renda familiar (valor cadastrado)' },
+  { value: 'PER_CAPITA_INCOME', label: 'Renda por pessoa (renda ÷ pessoas da família)' },
   { value: 'HOUSEHOLD_SIZE', label: 'Número de pessoas no domicílio' },
   { value: 'DEPENDENTS', label: 'Número de dependentes' },
   { value: 'REQUEST_REASON', label: 'Motivo informado no cadastro' },

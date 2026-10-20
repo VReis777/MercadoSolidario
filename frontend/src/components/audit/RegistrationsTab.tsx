@@ -1,12 +1,15 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
-  Alert, Box, Button, Chip, CircularProgress, FormControl, FormControlLabel, InputLabel, MenuItem, Paper,
+  Alert, Box, Button, Chip, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle,
+  FormControl, FormControlLabel, IconButton, InputLabel, MenuItem, Paper,
   Select, Stack, Switch, Table, TableBody, TableCell, TableContainer, TableHead, TablePagination, TableRow,
-  TextField, Typography,
+  TextField, Tooltip, Typography,
 } from '@mui/material'
 import UploadIcon from '@mui/icons-material/Upload'
+import PriorityHighIcon from '@mui/icons-material/PriorityHigh'
 import campaignService, { CampaignRegistration, Page } from '../../services/campaignService'
+import priorityService, { FamilyPriorityResult } from '../../services/priorityService'
 import { getApiErrorMessage } from '../../utils/apiError'
 import RegistrationImportDialog from './RegistrationImportDialog'
 
@@ -36,12 +39,36 @@ function RegistrationsTab({ campaignYear, canImport = false, initialOnlyWithHist
   const [search, setSearch] = useState('')
   const [appliedSearch, setAppliedSearch] = useState('')
   const [page, setPage] = useState(0)
-  const [size, setSize] = useState(20)
+  const [size, setSize] = useState(100)
   const [data, setData] = useState<Page<CampaignRegistration> | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [importOpen, setImportOpen] = useState(false)
   const [reload, setReload] = useState(0)
+  const [priorityByFamily, setPriorityByFamily] = useState<Map<number, FamilyPriorityResult>>(new Map())
+  const [criteriaDialog, setCriteriaDialog] = useState<FamilyPriorityResult | null>(null)
+
+  useEffect(() => {
+    priorityService.getRanking()
+      .then((ranking) => {
+        if (ranking.status === 'CALCULADA') {
+          setPriorityByFamily(new Map(ranking.families.map((f) => [f.familyId, f])))
+        }
+      })
+      .catch(() => undefined)
+  }, [reload])
+
+  const sortedRows = useMemo(() => {
+    if (!data) return []
+    return [...data.content].sort((a, b) => {
+      const pa = priorityByFamily.get(a.id)?.position ?? null
+      const pb = priorityByFamily.get(b.id)?.position ?? null
+      if (pa === null && pb === null) return 0
+      if (pa === null) return 1
+      if (pb === null) return -1
+      return pa - pb
+    })
+  }, [data, priorityByFamily])
 
   useEffect(() => {
     let active = true
@@ -117,12 +144,21 @@ function RegistrationsTab({ campaignYear, canImport = false, initialOnlyWithHist
                     <TableCell>Origem</TableCell>
                     <TableCell>Cadastro</TableCell>
                     <TableCell>Situação</TableCell>
+                    <TableCell>Prioridade</TableCell>
                     <TableCell>Histórico</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {data.content.map((f) => (
-                    <TableRow key={f.id} hover>
+                  {sortedRows.map((f) => {
+                    const priority = priorityByFamily.get(f.id)
+                    const hasHistory = f.historyMatch === 'CPF' || f.historyMatch === 'NOME'
+                    return (
+                    <TableRow key={f.id} hover
+                      sx={hasHistory ? {
+                        bgcolor: 'rgba(255, 196, 46, 0.18)',
+                        '&:hover': { bgcolor: 'rgba(255, 196, 46, 0.3)' },
+                        borderLeft: '4px solid #FFC42E',
+                      } : undefined}>
                       <TableCell>
                         {f.responsibleName}
                         {f.referrerName && (
@@ -136,6 +172,22 @@ function RegistrationsTab({ campaignYear, canImport = false, initialOnlyWithHist
                       <TableCell>{new Date(f.createdAt).toLocaleDateString('pt-BR')}</TableCell>
                       <TableCell>{f.status ? familyStatusLabels[f.status] ?? f.status : '—'}</TableCell>
                       <TableCell>
+                        {priority?.position != null ? (
+                          <Stack direction="row" spacing={0.5} alignItems="center">
+                            <Chip size="small" color="secondary" label={`#${priority.position}`} />
+                            <Tooltip title="Ver critérios atendidos">
+                              <IconButton size="small" color="warning"
+                                onClick={() => setCriteriaDialog(priority)}
+                                aria-label={`Ver critérios de prioridade de ${f.responsibleName}`}>
+                                <PriorityHighIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                          </Stack>
+                        ) : (
+                          <Typography variant="caption" color="text.secondary">—</Typography>
+                        )}
+                      </TableCell>
+                      <TableCell>
                         {f.historyMatch === 'CPF' && (
                           <Chip size="small" color="error" label={`Contemplada em ${f.historyYears.join(', ')} (CPF)`} />
                         )}
@@ -148,12 +200,13 @@ function RegistrationsTab({ campaignYear, canImport = false, initialOnlyWithHist
                         )}
                       </TableCell>
                     </TableRow>
-                  ))}
+                    )
+                  })}
                 </TableBody>
               </Table>
             </TableContainer>
             <TablePagination component="div" count={data.totalElements} page={page} rowsPerPage={size}
-              rowsPerPageOptions={[20, 50, 100]} labelRowsPerPage="Por página"
+              rowsPerPageOptions={[20, 50, 100, 200]} labelRowsPerPage="Por página"
               labelDisplayedRows={({ from, to, count }) => `${from}–${to} de ${count}`}
               onPageChange={(_, p) => setPage(p)}
               onRowsPerPageChange={(e) => { setSize(Number(e.target.value)); setPage(0) }} />
@@ -163,6 +216,37 @@ function RegistrationsTab({ campaignYear, canImport = false, initialOnlyWithHist
 
       <RegistrationImportDialog open={importOpen} onClose={() => setImportOpen(false)}
         onImported={() => { setReload((r) => r + 1); onChanged?.() }} />
+
+      <Dialog open={criteriaDialog !== null} onClose={() => setCriteriaDialog(null)} maxWidth="sm" fullWidth>
+        <DialogTitle>Critérios de prioridade atendidos</DialogTitle>
+        <DialogContent dividers>
+          {criteriaDialog && (
+            <Stack spacing={1.5}>
+              <Typography variant="body2" color="text.secondary">
+                Pontuação total: <strong>{criteriaDialog.score}</strong> — posição #{criteriaDialog.position}
+              </Typography>
+              {criteriaDialog.factors.filter((factor) => factor.matched).length === 0 ? (
+                <Alert severity="info">Nenhum critério atendido no momento.</Alert>
+              ) : (
+                criteriaDialog.factors.filter((factor) => factor.matched).map((factor) => (
+                  <Paper key={factor.label} variant="outlined" sx={{ p: 1.5 }}>
+                    <Stack direction="row" justifyContent="space-between" alignItems="center">
+                      <Typography fontWeight={700} variant="body2">{factor.label}</Typography>
+                      <Chip size="small" color="secondary" label={`+${factor.contribution}`} />
+                    </Stack>
+                    <Typography variant="caption" color="text.secondary">
+                      {factor.explanation} (valor da família: {factor.inputValue})
+                    </Typography>
+                  </Paper>
+                ))
+              )}
+            </Stack>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setCriteriaDialog(null)}>Fechar</Button>
+        </DialogActions>
+      </Dialog>
     </Stack>
   )
 }

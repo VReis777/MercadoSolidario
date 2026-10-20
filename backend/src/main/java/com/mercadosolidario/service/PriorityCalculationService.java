@@ -220,12 +220,21 @@ public class PriorityCalculationService {
     private Object inputValue(Family family, String factorCode) {
         return switch (factorCode) {
             case "TOTAL_INCOME" -> family.getTotalIncome();
+            case "PER_CAPITA_INCOME" -> perCapitaIncome(family);
             case "HOUSEHOLD_SIZE" -> BigDecimal.valueOf(family.getHouseholdSize());
             case "DEPENDENTS" -> BigDecimal.valueOf(family.getDependents() == null ? 0 : family.getDependents());
             case "REQUEST_REASON" -> family.getRequestReason().name();
             case "ORIGIN" -> family.getOrigin().name();
             default -> throw new IllegalStateException("Fator de prioridade persistido não reconhecido.");
         };
+    }
+
+    private BigDecimal perCapitaIncome(Family family) {
+        int people = family.getHouseholdSize() == null || family.getHouseholdSize() < 1
+            ? 1 : family.getHouseholdSize();
+        BigDecimal income = family.getTotalIncome() == null
+            ? BigDecimal.ZERO : family.getTotalIncome();
+        return income.divide(BigDecimal.valueOf(people), 2, java.math.RoundingMode.HALF_UP);
     }
 
     private PriorityCalculationResponse unconfigured(Long familyId) {
