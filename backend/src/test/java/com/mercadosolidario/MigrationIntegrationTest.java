@@ -151,6 +151,7 @@ class MigrationIntegrationTest {
 
     private void assertActivePriorityUniqueness() {
         String suffix = UUID.randomUUID().toString().replace("-", "");
+        jdbcTemplate.update("UPDATE priority_configurations SET active = FALSE WHERE active = TRUE");
         jdbcTemplate.update("""
                 INSERT INTO priority_configurations
                     (code, name, version_number, explanation, active, created_by, updated_by)
