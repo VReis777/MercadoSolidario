@@ -1,6 +1,7 @@
 package com.mercadosolidario.config;
 
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
@@ -13,13 +14,22 @@ import java.util.Properties;
 public class InvitationMailConfiguration {
 
     @Bean
-    @ConditionalOnExpression("'${SMTP_HOST:}'.trim().length() > 0")
+    @ConditionalOnMissingBean(JavaMailSender.class)
+    @ConditionalOnExpression(
+        "'${SMTP_HOST:${spring.mail.host:}}'.trim().length() > 0")
     public JavaMailSender invitationJavaMailSender(Environment environment) {
         JavaMailSenderImpl sender = new JavaMailSenderImpl();
-        sender.setHost(environment.getRequiredProperty("SMTP_HOST"));
-        sender.setPort(environment.getProperty("SMTP_PORT", Integer.class, 587));
-        sender.setUsername(environment.getProperty("SMTP_USERNAME", ""));
-        sender.setPassword(environment.getProperty("SMTP_PASSWORD", ""));
+        sender.setHost(environment.getProperty("SMTP_HOST",
+            environment.getRequiredProperty("spring.mail.host")));
+        Integer port = environment.getProperty("SMTP_PORT", Integer.class);
+        if (port == null) {
+            port = environment.getProperty("spring.mail.port", Integer.class, 587);
+        }
+        sender.setPort(port);
+        sender.setUsername(environment.getProperty("SMTP_USERNAME",
+            environment.getProperty("spring.mail.username", "")));
+        sender.setPassword(environment.getProperty("SMTP_PASSWORD",
+            environment.getProperty("spring.mail.password", "")));
 
         Properties mailProperties = sender.getJavaMailProperties();
         boolean hasUsername = !sender.getUsername().isBlank();
