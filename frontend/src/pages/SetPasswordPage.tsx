@@ -5,11 +5,14 @@ import {
   Button,
   CircularProgress,
   Container,
+  IconButton,
+  InputAdornment,
   Paper,
   Stack,
   TextField,
   Typography,
 } from '@mui/material';
+import { Visibility, VisibilityOff } from '@mui/icons-material';
 import { Link, useSearchParams } from 'react-router-dom';
 import { styled } from '@mui/material/styles';
 import { userAccountService } from '../services/userAccountService';
@@ -28,6 +31,7 @@ function SetPasswordPage() {
   const token = searchParams.get('token') ?? '';
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [completed, setCompleted] = useState(false);
@@ -91,18 +95,31 @@ function SetPasswordPage() {
                     <TextField
                       required
                       fullWidth
-                      type="password"
+                      type={showPassword ? 'text' : 'password'}
                       label="Nova senha"
                       autoComplete="new-password"
                       value={password}
                       onChange={(event) => setPassword(event.target.value)}
                       inputProps={{ minLength: 8, maxLength: 128 }}
                       disabled={loading}
+                      InputProps={{
+                        endAdornment: (
+                          <InputAdornment position="end">
+                            <IconButton
+                              onClick={() => setShowPassword((v) => !v)}
+                              edge="end"
+                              aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
+                            >
+                              {showPassword ? <VisibilityOff /> : <Visibility />}
+                            </IconButton>
+                          </InputAdornment>
+                        ),
+                      }}
                     />
                     <TextField
                       required
                       fullWidth
-                      type="password"
+                      type={showPassword ? 'text' : 'password'}
                       label="Confirmar nova senha"
                       autoComplete="new-password"
                       value={confirmPassword}

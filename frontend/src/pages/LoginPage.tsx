@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Container, Box, Typography, TextField, Button, Paper, Alert, CircularProgress } from '@mui/material'
+import { Container, Box, Typography, TextField, Button, Paper, Alert, CircularProgress, IconButton, InputAdornment } from '@mui/material'
+import { Visibility, VisibilityOff } from '@mui/icons-material'
 import { styled } from '@mui/material/styles'
 import { useAuth } from '../auth/AuthContext'
 import { authService } from '../services/authService'
@@ -24,6 +25,7 @@ function LoginPage() {
   const [sessionNotice] = useState(() => authService.consumeSessionNotice())
   const [firstAccess, setFirstAccess] = useState<{ message: string; emailSent: boolean } | null>(null)
   const [loading, setLoading] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
   const { login } = useAuth()
   const navigate = useNavigate()
 
@@ -93,13 +95,26 @@ function LoginPage() {
             <TextField
               fullWidth
               label="Senha"
-              type="password"
+              type={showPassword ? 'text' : 'password'}
               margin="normal"
               variant="outlined"
               autoComplete="current-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               disabled={loading}
+              InputProps={{
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton
+                      onClick={() => setShowPassword((v) => !v)}
+                      edge="end"
+                      aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
+                    >
+                      {showPassword ? <VisibilityOff /> : <Visibility />}
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              }}
             />
             <Button
               fullWidth
