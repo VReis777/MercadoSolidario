@@ -94,7 +94,8 @@ class DistributionServiceTest {
         verify(stockService, times(2)).registerDistributionMovement(anyLong(), anyInt(), eq(family), anyString());
         verify(stockService).registerDistributionMovement(8L, 5, family, "Distribuição 19");
         verify(stockService).registerDistributionMovement(4L, 2, family, "Distribuição 19");
-        verify(familyRepository, never()).save(any());
+        verify(familyRepository).save(argThat(saved ->
+            saved.getStatus() == com.mercadosolidario.model.enums.FamilyStatus.CONTEMPLADA));
         verify(auditLogRepository, times(2)).save(argThat(log ->
             log.getAction().equals("DISTRIBUTION_CREATED")
                 || log.getAction().equals("DISTRIBUTION_CONFIRMED")));

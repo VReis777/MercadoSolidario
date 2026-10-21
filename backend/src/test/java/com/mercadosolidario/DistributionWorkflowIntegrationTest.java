@@ -45,7 +45,7 @@ class DistributionWorkflowIntegrationTest {
 
     @Test
     @WithMockUser(username = "distributor", roles = "DIACONO")
-    void multipleItemsDecreaseBalancesAtomicallyAndDoNotChangeFamilyStatus() throws Exception {
+    void multipleItemsDecreaseBalancesAtomicallyAndMarkFamilyContemplated() throws Exception {
         createUser("distributor", "DIACONO");
         Family family = createFamily();
         Product rice = createProduct("Arroz", 10);
@@ -68,7 +68,7 @@ class DistributionWorkflowIntegrationTest {
         assertThat(productRepository.findById(rice.getId()).orElseThrow().getCurrentQuantity()).isEqualTo(6);
         assertThat(productRepository.findById(beans.getId()).orElseThrow().getCurrentQuantity()).isEqualTo(5);
         assertThat(familyRepository.findById(family.getId()).orElseThrow().getStatus())
-            .isEqualTo(FamilyStatus.APROVADA);
+            .isEqualTo(FamilyStatus.CONTEMPLADA);
         List<StockMovement> movements = movementRepository.findByFamilyId(family.getId());
         assertThat(movements).hasSize(2).allSatisfy(movement -> {
             assertThat(movement.getType().name()).isEqualTo("SAIDA_DISTRIBUICAO");
@@ -150,6 +150,32 @@ class DistributionWorkflowIntegrationTest {
         assertThat(productRepository.findById(product.getId()).orElseThrow().getCurrentQuantity()).isEqualTo(5);
         assertThat(itemRepository.findByDistributionIdOrderByIdAsc(distributionId)).hasSize(1);
         assertThat(movementRepository.findByFamilyId(family.getId())).hasSize(1);
+        assertThat(familyRepository.findById(family.getId()).orElseThrow().getStatus())
+            .isEqualTo(FamilyStatus.APROVADA);
+    }
+
+    @Test
+    @WithMockUser(username = "distributor", roles = "DIACONO")
+    void contemplatedFamilyCannotReceiveSecondDistribution() throws Exception {
+        createUser("distributor", "DIACONO");
+        Family family = createFamily();
+        Product product = createProduct("Produto segunda cesta", 9);
+        String first = objectMapper.writeValueAsString(
+            request(family.getId(), "first-basket", new Item(product.getId(), 2)));
+        mockMvc.perform(post("/api/distributions")
+                .contentType(MediaType.APPLICATION_JSON).content(first))
+            .andExpect(status().isOk());
+        assertThat(familyRepository.findById(family.getId()).orElseThrow().getStatus())
+            .isEqualTo(FamilyStatus.CONTEMPLADA);
+
+        String second = objectMapper.writeValueAsString(
+            request(family.getId(), "second-basket", new Item(product.getId(), 1)));
+        mockMvc.perform(post("/api/distributions")
+                .contentType(MediaType.APPLICATION_JSON).content(second))
+            .andExpect(status().isConflict())
+            .andExpect(jsonPath("$.message").value(
+                org.hamcrest.Matchers.containsString("já foi contemplada")));
+        assertThat(productRepository.findById(product.getId()).orElseThrow().getCurrentQuantity()).isEqualTo(7);
     }
 
     @Test

@@ -48,6 +48,9 @@ public class DistributionService {
         if (family.getStatus() == FamilyStatus.INATIVA || family.getStatus() == FamilyStatus.CANCELADA) {
             throw new ConflictException("Não é possível registrar distribuição para uma família inativa ou cancelada.");
         }
+        if (family.getStatus() == FamilyStatus.CONTEMPLADA || family.getStatus() == FamilyStatus.ATENDIDA) {
+            throw new ConflictException("Esta família já foi contemplada e não pode receber uma segunda retirada.");
+        }
         validateUniqueProducts(request);
 
         List<Long> productIds = request.getItems().stream()
@@ -115,6 +118,9 @@ public class DistributionService {
             savedItems.add(itemRepository.save(item));
         }
 
+        family.setStatus(FamilyStatus.CONTEMPLADA);
+        familyRepository.save(family);
+
         String auditDetails = "familyId=" + family.getId() + ",items=" + describeItems(savedItems);
         audit("DISTRIBUTION_CREATED", saved.getId(), username, auditDetails);
         audit("DISTRIBUTION_CONFIRMED", saved.getId(), username, auditDetails);
@@ -154,6 +160,11 @@ public class DistributionService {
         String username = actor();
         distribution.setStatus(DistributionStatus.CANCELADA);
         distribution.setCancellationReason(request.getReason().trim());
+        Family family = distribution.getFamily();
+        if (family.getStatus() == FamilyStatus.CONTEMPLADA) {
+            family.setStatus(FamilyStatus.APROVADA);
+            familyRepository.save(family);
+        }
         Distribution saved = distributionRepository.save(distribution);
         audit("DISTRIBUTION_CANCELLED", saved.getId(), username,
             "familyId=" + saved.getFamily().getId() + ",reason=" + request.getReason().trim()

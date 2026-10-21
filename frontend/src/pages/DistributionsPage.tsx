@@ -84,7 +84,8 @@ function DistributionsPage() {
       )
       const allFamilies = [familyPage, ...remainingFamilyPages].flatMap((page) => page.content)
       setFamilies(allFamilies.filter(
-        (family) => family.status !== 'INATIVA' && family.status !== 'CANCELADA',
+        (family) => family.status !== 'INATIVA' && family.status !== 'CANCELADA'
+          && family.status !== 'CONTEMPLADA' && family.status !== 'ATENDIDA',
       ))
       setProducts(productList.filter((product) => product.active))
       setDistributions(distributionList)
