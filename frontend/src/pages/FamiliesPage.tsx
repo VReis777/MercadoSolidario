@@ -29,6 +29,10 @@ import {
   Card,
   CardContent,
   AppBar,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
   useMediaQuery,
 } from '@mui/material'
 import {
@@ -40,6 +44,7 @@ import {
   ArrowBack as ArrowBackIcon,
   Upload as UploadIcon,
   History as HistoryIcon,
+  FilterList as FilterListIcon,
 } from '@mui/icons-material'
 import familyService from '../services/familyService'
 import { Family } from '../types/family'
@@ -59,8 +64,32 @@ function FamiliesPage() {
   const [error, setError] = useState('')
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
-  const [maxIncome, setMaxIncome] = useState('')
-  const [onlyDisabled, setOnlyDisabled] = useState(false)
+  const [filtersOpen, setFiltersOpen] = useState(false)
+  const [filterMaxIncome, setFilterMaxIncome] = useState('')
+  const [filterMinIncome, setFilterMinIncome] = useState('')
+  const [filterMinPeople, setFilterMinPeople] = useState('')
+  const [filterDisabled, setFilterDisabled] = useState('')
+  const [filterRent, setFilterRent] = useState('')
+  const [filterSingleParent, setFilterSingleParent] = useState('')
+  const [filterReason, setFilterReason] = useState('')
+  const [filterOrigin, setFilterOrigin] = useState('')
+
+  const SINGLE_PARENT_WORDS = ['', 'nao tem', 'não tem', 'nao', 'não', 'nenhum', 'solteiro', 'solteira', 'viuvo', 'viúvo', 'viuva', 'viúva']
+  const isSingleParent = (spouse?: string) =>
+    !spouse || SINGLE_PARENT_WORDS.includes(spouse.trim().toLowerCase())
+
+  const advancedFilters = [
+    filterMaxIncome, filterMinIncome, filterMinPeople,
+    filterDisabled, filterRent, filterSingleParent, filterReason, filterOrigin,
+  ]
+  const activeFilterCount = advancedFilters.filter(Boolean).length
+  const hasAdvancedFilter = activeFilterCount > 0
+
+  const clearFilters = () => {
+    setFilterMaxIncome(''); setFilterMinIncome(''); setFilterMinPeople('')
+    setFilterDisabled(''); setFilterRent(''); setFilterSingleParent('')
+    setFilterReason(''); setFilterOrigin('')
+  }
   const [page, setPage] = useState(0)
   const [totalPages, setTotalPages] = useState(0)
   const [selectedFamily, setSelectedFamily] = useState<Family | null>(null)
@@ -69,11 +98,9 @@ function FamiliesPage() {
   const [importOpen, setImportOpen] = useState(false)
   const [showPreviousBeneficiaries, setShowPreviousBeneficiaries] = useState(false)
 
-  const hasAdvancedFilter = Boolean(maxIncome) || onlyDisabled
-
   useEffect(() => {
     loadFamilies()
-  }, [page, statusFilter, showPreviousBeneficiaries])
+  }, [page, statusFilter, showPreviousBeneficiaries, hasAdvancedFilter])
 
   const loadFamilies = async () => {
     setLoading(true)
@@ -98,8 +125,18 @@ function FamiliesPage() {
   }
 
   const visibleFamilies = families.filter((family) => {
-    if (maxIncome && Number(family.totalIncome) >= Number(maxIncome.replace(',', '.'))) return false
-    if (onlyDisabled && !(family.disabledCount && family.disabledCount > 0)) return false
+    const income = Number(family.totalIncome)
+    if (filterMaxIncome && income > Number(filterMaxIncome.replace(',', '.'))) return false
+    if (filterMinIncome && income < Number(filterMinIncome.replace(',', '.'))) return false
+    if (filterMinPeople && Number(family.householdSize) < Number(filterMinPeople)) return false
+    if (filterDisabled === 'sim' && !(family.disabledCount && family.disabledCount > 0)) return false
+    if (filterDisabled === 'nao' && family.disabledCount && family.disabledCount > 0) return false
+    if (filterRent === 'sim' && !family.paysRent) return false
+    if (filterRent === 'nao' && family.paysRent) return false
+    if (filterSingleParent === 'sim' && !isSingleParent(family.spouseName)) return false
+    if (filterSingleParent === 'nao' && isSingleParent(family.spouseName)) return false
+    if (filterReason && family.requestReason !== filterReason) return false
+    if (filterOrigin && family.origin !== filterOrigin) return false
     return true
   })
 
@@ -249,24 +286,14 @@ function FamiliesPage() {
               </FormControl>
             </Grid>
             <Grid item xs={12} sm={6} md={2}>
-              <TextField
-                fullWidth
-                type="number"
-                label="Renda até (R$)"
-                value={maxIncome}
-                onChange={(e) => { setMaxIncome(e.target.value); setPage(0) }}
-                inputProps={{ min: 0, step: 100 }}
-                helperText="Ex.: 1000"
-              />
-            </Grid>
-            <Grid item xs={12} sm={6} md={2}>
               <Button
                 fullWidth
-                variant={onlyDisabled ? 'contained' : 'outlined'}
-                onClick={() => { setOnlyDisabled(!onlyDisabled); setPage(0) }}
+                variant={hasAdvancedFilter ? 'contained' : 'outlined'}
+                startIcon={<FilterListIcon />}
+                onClick={() => setFiltersOpen(true)}
                 sx={{ height: 56 }}
               >
-                {onlyDisabled ? 'Todas' : 'Com deficiência'}
+                Filtros{activeFilterCount > 0 ? ` (${activeFilterCount})` : ''}
               </Button>
             </Grid>
             <Grid item xs={12} sm={6} md={3}>
@@ -362,11 +389,17 @@ function FamiliesPage() {
           </Paper>
         )}
 
-        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', mt: 3, gap: 1, flexWrap: 'wrap' }}>
-          <Button disabled={page === 0} onClick={() => setPage(page - 1)}>Anterior</Button>
-          <Typography>Página {page + 1} de {Math.max(totalPages, 1)}</Typography>
-          <Button disabled={page >= totalPages - 1} onClick={() => setPage(page + 1)}>Próxima</Button>
-        </Box>
+        {hasAdvancedFilter ? (
+          <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', mt: 3 }}>
+            {visibleFamilies.length} família(s) encontrada(s) com os filtros aplicados
+          </Typography>
+        ) : (
+          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', mt: 3, gap: 1, flexWrap: 'wrap' }}>
+            <Button disabled={page === 0} onClick={() => setPage(page - 1)}>Anterior</Button>
+            <Typography>Página {page + 1} de {Math.max(totalPages, 1)}</Typography>
+            <Button disabled={page >= totalPages - 1} onClick={() => setPage(page + 1)}>Próxima</Button>
+          </Box>
+        )}
 
         {canEdit() && (
           <Fab
@@ -400,6 +433,105 @@ function FamiliesPage() {
           onClose={() => setImportOpen(false)}
           onImportComplete={loadFamilies}
         />
+
+        <Dialog open={filtersOpen} onClose={() => setFiltersOpen(false)} maxWidth="sm" fullWidth>
+          <DialogTitle>Filtros das famílias</DialogTitle>
+          <DialogContent>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              Combine os critérios que precisar — só aparecem as famílias que atendem a todos.
+            </Typography>
+            <Grid container spacing={2} sx={{ mt: 0.5 }}>
+              <Grid item xs={6}>
+                <TextField fullWidth type="number" size="small" label="Renda de (R$)"
+                  value={filterMinIncome} onChange={(e) => setFilterMinIncome(e.target.value)}
+                  inputProps={{ min: 0, step: 100 }} />
+              </Grid>
+              <Grid item xs={6}>
+                <TextField fullWidth type="number" size="small" label="Renda até (R$)"
+                  value={filterMaxIncome} onChange={(e) => setFilterMaxIncome(e.target.value)}
+                  inputProps={{ min: 0, step: 100 }} />
+              </Grid>
+              <Grid item xs={6}>
+                <TextField fullWidth type="number" size="small" label="Pessoas na família (mín.)"
+                  value={filterMinPeople} onChange={(e) => setFilterMinPeople(e.target.value)}
+                  inputProps={{ min: 1, step: 1 }} />
+              </Grid>
+              <Grid item xs={6}>
+                <FormControl fullWidth size="small">
+                  <InputLabel>Com deficiência</InputLabel>
+                  <Select value={filterDisabled} label="Com deficiência"
+                    onChange={(e) => setFilterDisabled(e.target.value)}>
+                    <MenuItem value="">Todos</MenuItem>
+                    <MenuItem value="sim">Sim</MenuItem>
+                    <MenuItem value="nao">Não</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+              <Grid item xs={6}>
+                <FormControl fullWidth size="small">
+                  <InputLabel>Paga aluguel</InputLabel>
+                  <Select value={filterRent} label="Paga aluguel"
+                    onChange={(e) => setFilterRent(e.target.value)}>
+                    <MenuItem value="">Todos</MenuItem>
+                    <MenuItem value="sim">Sim</MenuItem>
+                    <MenuItem value="nao">Não</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+              <Grid item xs={6}>
+                <FormControl fullWidth size="small">
+                  <InputLabel>Pai/mãe solo</InputLabel>
+                  <Select value={filterSingleParent} label="Pai/mãe solo"
+                    onChange={(e) => setFilterSingleParent(e.target.value)}>
+                    <MenuItem value="">Todos</MenuItem>
+                    <MenuItem value="sim">Sim</MenuItem>
+                    <MenuItem value="nao">Não</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+              <Grid item xs={6}>
+                <FormControl fullWidth size="small">
+                  <InputLabel>Maior necessidade</InputLabel>
+                  <Select value={filterReason} label="Maior necessidade"
+                    onChange={(e) => setFilterReason(e.target.value)}>
+                    <MenuItem value="">Todos</MenuItem>
+                    <MenuItem value="DESEMPREGO">Desemprego</MenuItem>
+                    <MenuItem value="BAIXA_RENDA">Baixa renda</MenuItem>
+                    <MenuItem value="EMERGENCIA_FINANCEIRA">Emergência financeira</MenuItem>
+                    <MenuItem value="DOENCA_FAMILIA">Doença na família</MenuItem>
+                    <MenuItem value="PERDA_RENDA">Perda de renda</MenuItem>
+                    <MenuItem value="SITUACAO_HABITACIONAL">Situação habitacional</MenuItem>
+                    <MenuItem value="FAMILIA_NUMEROSA">Família numerosa</MenuItem>
+                    <MenuItem value="OUTRO">Outro</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+              <Grid item xs={6}>
+                <FormControl fullWidth size="small">
+                  <InputLabel>Origem do cadastro</InputLabel>
+                  <Select value={filterOrigin} label="Origem do cadastro"
+                    onChange={(e) => setFilterOrigin(e.target.value)}>
+                    <MenuItem value="">Todos</MenuItem>
+                    <MenuItem value="CADASTRO_PROPRIO">Cadastro próprio</MenuItem>
+                    <MenuItem value="INDICACAO">Indicação</MenuItem>
+                    <MenuItem value="IGREJA">Igreja</MenuItem>
+                    <MenuItem value="DIACONO">Voluntário ADM</MenuItem>
+                    <MenuItem value="PASTOR">Pastor</MenuItem>
+                    <MenuItem value="MEMBRO_IGREJA">Membro da igreja</MenuItem>
+                    <MenuItem value="INSTITUICAO_PARCEIRA">Instituição parceira</MenuItem>
+                    <MenuItem value="OUTRO">Outro</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+            </Grid>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={clearFilters}>Limpar tudo</Button>
+            <Button variant="contained" onClick={() => setFiltersOpen(false)}>
+              Ver {visibleFamilies.length} família(s)
+            </Button>
+          </DialogActions>
+        </Dialog>
       </Container>
     </Box>
   )
