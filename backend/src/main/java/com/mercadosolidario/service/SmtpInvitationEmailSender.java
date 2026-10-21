@@ -28,6 +28,19 @@ public class SmtpInvitationEmailSender implements InvitationEmailSender {
     @Value("${spring.mail.password:}")
     private String smtpPassword;
 
+    @Value("${spring.mail.host:}")
+    private String smtpHost;
+
+    @Value("${spring.mail.port:587}")
+    private int smtpPort;
+
+    @jakarta.annotation.PostConstruct
+    void logMailConfig() {
+        JavaMailSender sender = mailSenderProvider.getIfAvailable();
+        log.info("Mail config: enabled={}, host={}, port={}, fromConfigured={}, passwordConfigured={}, senderBean={}",
+                mailEnabled, smtpHost, smtpPort, !fromAddress.isBlank(), !smtpPassword.isBlank(), sender != null);
+    }
+
     @Override
     public void sendPasswordSetupLink(String email, String fullName, String setupLink) {
         send(email, "Defina sua senha - Mercado Solidário", """
