@@ -55,6 +55,9 @@ public class Family {
     @Column(name = "rent_value", precision = 12, scale = 2)
     private BigDecimal rentValue;
 
+    @Column(name = "disabled_count")
+    private Integer disabledCount = 0;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "request_reason", nullable = false)
     private RequestReason requestReason;

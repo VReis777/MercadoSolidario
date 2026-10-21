@@ -47,6 +47,9 @@ public class FamilyCreateRequest {
     @DecimalMin(value = "0.00", message = "Valor do aluguel não pode ser negativo")
     private BigDecimal rentValue;
 
+    @Min(value = 0, message = "Quantidade de pessoas com deficiência não pode ser negativa")
+    private Integer disabledCount;
+
     @NotNull(message = "Motivo da solicitação é obrigatório")
     private RequestReason requestReason;
 

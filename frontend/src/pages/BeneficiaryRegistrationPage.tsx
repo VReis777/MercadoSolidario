@@ -44,6 +44,8 @@ function BeneficiaryRegistrationPage() {
   const [totalIncome, setTotalIncome] = useState('')
   const [paysRent, setPaysRent] = useState(false)
   const [rentValue, setRentValue] = useState('')
+  const [hasDisabled, setHasDisabled] = useState(false)
+  const [disabledCount, setDisabledCount] = useState('')
   const [requestReason, setRequestReason] = useState('')
   const [observations, setObservations] = useState('')
   const [referrerName, setReferrerName] = useState('')
@@ -66,6 +68,7 @@ function BeneficiaryRegistrationPage() {
         totalIncome: Number(totalIncome.replace(',', '.')),
         paysRent,
         rentValue: paysRent && rentValue.trim() ? Number(rentValue.replace(',', '.')) : undefined,
+        disabledCount: hasDisabled ? Number(disabledCount || 0) : 0,
         requestReason,
         origin: referrerName.trim() ? 'INDICACAO' : 'CADASTRO_PROPRIO',
         referrerName: referrerName.trim() || undefined,
@@ -158,6 +161,16 @@ function BeneficiaryRegistrationPage() {
                     onChange={(e) => setRentValue(e.target.value)}
                     helperText="Se não souber informar, deixe em branco" inputProps={{ min: 0, step: '0.01' }}
                     sx={{ mt: 1 }} />
+                )}
+              </Grid>
+              <Grid item xs={12} sm={4}>
+                <FormControlLabel
+                  control={<Switch checked={hasDisabled} onChange={(e) => setHasDisabled(e.target.checked)} />}
+                  label="Pessoa com deficiência na família?" sx={{ mt: 1 }} />
+                {hasDisabled && (
+                  <TextField required fullWidth type="number" label="Quantas?" value={disabledCount}
+                    onChange={(e) => setDisabledCount(e.target.value)}
+                    inputProps={{ min: 1, step: 1 }} sx={{ mt: 1 }} />
                 )}
               </Grid>
               <Grid item xs={12} sm={4}>

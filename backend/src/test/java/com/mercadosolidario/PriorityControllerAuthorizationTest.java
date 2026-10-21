@@ -64,13 +64,13 @@ class PriorityControllerAuthorizationTest {
 
     @Test
     @WithMockUser(username = "rh", roles = "RH_TESOURARIA")
-    void rhCanReadPriorityButCannotManageConfiguration() throws Exception {
+    void rhCanReadPriorityAndManageConfiguration() throws Exception {
         mockMvc.perform(get("/api/families/priority"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.status").value("PRIORIDADE_NAO_CONFIGURADA"));
 
         mockMvc.perform(get("/api/priority/configuration"))
-            .andExpect(status().isForbidden());
+            .andExpect(status().isOk());
     }
 
     @Test

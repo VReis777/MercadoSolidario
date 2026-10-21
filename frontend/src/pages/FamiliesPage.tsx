@@ -59,6 +59,8 @@ function FamiliesPage() {
   const [error, setError] = useState('')
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
+  const [maxIncome, setMaxIncome] = useState('')
+  const [onlyDisabled, setOnlyDisabled] = useState(false)
   const [page, setPage] = useState(0)
   const [totalPages, setTotalPages] = useState(0)
   const [selectedFamily, setSelectedFamily] = useState<Family | null>(null)
@@ -66,6 +68,8 @@ function FamiliesPage() {
   const [detailsOpen, setDetailsOpen] = useState(false)
   const [importOpen, setImportOpen] = useState(false)
   const [showPreviousBeneficiaries, setShowPreviousBeneficiaries] = useState(false)
+
+  const hasAdvancedFilter = Boolean(maxIncome) || onlyDisabled
 
   useEffect(() => {
     loadFamilies()
@@ -75,7 +79,10 @@ function FamiliesPage() {
     setLoading(true)
     setError('')
     try {
-      const params: Record<string, string | number> = { page, size: 10 }
+      const params: Record<string, string | number> = {
+        page: hasAdvancedFilter ? 0 : page,
+        size: hasAdvancedFilter ? 500 : 10,
+      }
       if (statusFilter) params.status = statusFilter
       if (searchTerm) params.name = searchTerm
       if (showPreviousBeneficiaries) params.previousBeneficiary = 'true'
@@ -89,6 +96,12 @@ function FamiliesPage() {
       setLoading(false)
     }
   }
+
+  const visibleFamilies = families.filter((family) => {
+    if (maxIncome && Number(family.totalIncome) >= Number(maxIncome.replace(',', '.'))) return false
+    if (onlyDisabled && !(family.disabledCount && family.disabledCount > 0)) return false
+    return true
+  })
 
   const handleSearch = () => {
     setPage(0)
@@ -235,6 +248,27 @@ function FamiliesPage() {
                 </Select>
               </FormControl>
             </Grid>
+            <Grid item xs={12} sm={6} md={2}>
+              <TextField
+                fullWidth
+                type="number"
+                label="Renda até (R$)"
+                value={maxIncome}
+                onChange={(e) => { setMaxIncome(e.target.value); setPage(0) }}
+                inputProps={{ min: 0, step: 100 }}
+                helperText="Ex.: 1000"
+              />
+            </Grid>
+            <Grid item xs={12} sm={6} md={2}>
+              <Button
+                fullWidth
+                variant={onlyDisabled ? 'contained' : 'outlined'}
+                onClick={() => { setOnlyDisabled(!onlyDisabled); setPage(0) }}
+                sx={{ height: 56 }}
+              >
+                {onlyDisabled ? 'Todas' : 'Com deficiência'}
+              </Button>
+            </Grid>
             <Grid item xs={12} sm={6} md={3}>
               <Button
                 fullWidth
@@ -259,12 +293,19 @@ function FamiliesPage() {
           <Alert severity="info">Nenhuma família encontrada</Alert>
         ) : isMobile ? (
           <Grid container spacing={2}>
-            {families.map((family) => (
+            {visibleFamilies.map((family) => (
               <Grid item xs={12} key={family.id}>
                 <Card>
                   <CardContent>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 1, mb: 1 }}>
-                      <Typography fontWeight={700}>{family.responsibleName}</Typography>
+                      <Typography fontWeight={700}>
+                        {family.responsibleName}
+                        {(family.disabledCount || 0) > 0 && (
+                          <Tooltip title={`${family.disabledCount} pessoa(s) com deficiência na família`}>
+                            <Chip label="#" size="small" color="info" sx={{ ml: 1 }} />
+                          </Tooltip>
+                        )}
+                      </Typography>
                       <Chip label={family.status.replace('_', ' ')} color={getStatusColor(family.status)} size="small" />
                     </Box>
                     <Typography variant="body2">CPF: {maskCpf(family.cpf)}</Typography>
@@ -291,9 +332,16 @@ function FamiliesPage() {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {families.map((family) => (
+                  {visibleFamilies.map((family) => (
                     <TableRow key={family.id}>
-                      <TableCell>{family.responsibleName}</TableCell>
+                      <TableCell>
+                        {family.responsibleName}
+                        {(family.disabledCount || 0) > 0 && (
+                          <Tooltip title={`${family.disabledCount} pessoa(s) com deficiência na família`}>
+                            <Chip label="#" size="small" color="info" sx={{ ml: 1 }} />
+                          </Tooltip>
+                        )}
+                      </TableCell>
                       <TableCell>{maskCpf(family.cpf)}</TableCell>
                       <TableCell>{family.householdSize}</TableCell>
                       <TableCell>{formatCurrency(family.totalIncome)}</TableCell>

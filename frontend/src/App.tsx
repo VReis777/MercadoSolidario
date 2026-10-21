@@ -15,7 +15,7 @@ import StockPage from './pages/StockPage'
 import DonationsPage from './pages/DonationsPage'
 import PublicDonationPage from './pages/PublicDonationPage'
 import DistributionsPage from './pages/DistributionsPage'
-import RequestHelpPage from './pages/RequestHelpPage'
+// Reabre em dezembro: import RequestHelpPage from './pages/RequestHelpPage'
 import ServiceRequestsPage from './pages/ServiceRequestsPage'
 import UserManagementPage from './pages/UserManagementPage'
 import SetPasswordPage from './pages/SetPasswordPage'
@@ -23,7 +23,7 @@ import AuditPage from './pages/AuditPage'
 import SponsorsPage from './pages/SponsorsPage'
 import ReportsPage from './pages/ReportsPage'
 import SettingsPage from './pages/SettingsPage'
-import BeneficiaryRegistrationPage from './pages/BeneficiaryRegistrationPage'
+// Reabre em dezembro: import BeneficiaryRegistrationPage from './pages/BeneficiaryRegistrationPage'
 import CompanyPage from './pages/CompanyPage'
 import AppNavbar from './components/AppNavbar'
 
@@ -67,9 +67,13 @@ function AppContent() {
         <Route path="/" element={<PublicPage />} />
         <Route path="/donate" element={<Navigate to="/doacao" replace />} />
         <Route path="/doacao" element={<PublicDonationPage />} />
+        {/* Reabre em dezembro: fluxos públicos de pedido de atendimento e cadastro
         <Route path="/request-help" element={<Navigate to="/solicitar-atendimento" replace />} />
         <Route path="/solicitar-atendimento" element={<RequestHelpPage />} />
-        <Route path="/cadastro-beneficiado" element={<BeneficiaryRegistrationPage />} />
+        <Route path="/cadastro-beneficiado" element={<BeneficiaryRegistrationPage />} /> */}
+        <Route path="/request-help" element={<Navigate to="/" replace />} />
+        <Route path="/solicitar-atendimento" element={<Navigate to="/" replace />} />
+        <Route path="/cadastro-beneficiado" element={<Navigate to="/" replace />} />
         <Route path="/sou-empresa" element={<CompanyPage />} />
         <Route path="/set-password" element={<LegacyRedirect to="/definir-senha" />} />
         <Route path="/definir-senha" element={<SetPasswordPage />} />

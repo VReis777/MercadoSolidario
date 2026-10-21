@@ -285,7 +285,7 @@ public class PriorityCalculationService {
             ? 1 : family.getHouseholdSize();
         BigDecimal income = family.getTotalIncome() == null
             ? BigDecimal.ZERO : family.getTotalIncome();
-        BigDecimal net = income.subtract(rentDeduction(family));
+        BigDecimal net = income.subtract(rentDeduction(family)).subtract(disabilityDeduction(family));
         if (net.signum() < 0) {
             net = BigDecimal.ZERO;
         }
@@ -317,6 +317,24 @@ public class PriorityCalculationService {
             : new BigDecimal("1500");
         BigDecimal declared = family.getRentValue();
         return declared == null ? cap : declared.min(cap);
+    }
+
+    /**
+     * Custo de cuidado com pessoas com deficiência: abate da renda antes de
+     * qualquer régua. Valor reservado — não aparece como critério na fila.
+     */
+    private BigDecimal disabilityDeduction(Family family) {
+        int count = family.getDisabledCount() == null ? 0 : family.getDisabledCount();
+        if (count <= 0) {
+            return BigDecimal.ZERO;
+        }
+        if (count == 1) {
+            return new BigDecimal("500");
+        }
+        if (count == 2) {
+            return new BigDecimal("700");
+        }
+        return new BigDecimal("1000");
     }
 
     private boolean isSingleParent(Family family) {

@@ -113,7 +113,7 @@ function CompanyPage() {
               rel="noopener noreferrer"
               disabled={!siteInfo.whatsappGroupUrl}
             >
-              {siteInfo.whatsappGroupUrl ? 'Entrar no grupo do WhatsApp' : 'Grupo de WhatsApp em breve'}
+              {siteInfo.whatsappGroupUrl ? 'Falar no WhatsApp' : 'WhatsApp em breve'}
             </Button>
             <Button
               variant="text"

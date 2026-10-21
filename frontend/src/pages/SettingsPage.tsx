@@ -151,21 +151,21 @@ function SettingsPage() {
       <Paper sx={{ p: 2.5, mb: 3 }}>
         <Typography variant="h6" gutterBottom>Links públicos</Typography>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-          Link do grupo de WhatsApp exibido na página "Sou empresa" e o Instagram mostrado nas páginas públicas.
-          Deixe o grupo em branco enquanto ele não existir — o botão ficará como "em breve".
+          Link de contato de WhatsApp exibido na página "Sou empresa" e o Instagram mostrado nas páginas públicas.
+          Padrão: wa.me/552422426665 (+55 24 2242-6665).
         </Typography>
         {siteError && <Alert severity="error" sx={{ mb: 2 }}>{siteError}</Alert>}
         {siteMessage && <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSiteMessage('')}>{siteMessage}</Alert>}
         <Box component="form" onSubmit={saveSiteInfo}>
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} alignItems={{ sm: 'center' }}>
             <TextField
-              label="Link do grupo de WhatsApp"
+              label="Link de contato de WhatsApp"
               size="small"
               fullWidth
               value={whatsappUrl}
               onChange={(e) => setWhatsappUrl(e.target.value)}
               inputProps={{ maxLength: 500 }}
-              placeholder="https://chat.whatsapp.com/..."
+              placeholder="https://wa.me/552422426665"
             />
             <TextField
               label="Link do Instagram"

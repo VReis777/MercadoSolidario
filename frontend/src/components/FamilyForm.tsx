@@ -44,6 +44,8 @@ interface FormData {
   totalIncome: string
   paysRent: boolean
   rentValue: string
+  hasDisabled: boolean
+  disabledCount: string
   requestReason: string
   origin: string
   referrerName: string
@@ -60,6 +62,8 @@ const initialFormData: FormData = {
   totalIncome: '',
   paysRent: false,
   rentValue: '',
+  hasDisabled: false,
+  disabledCount: '',
   requestReason: '',
   origin: '',
   referrerName: '',
@@ -85,6 +89,8 @@ function FamilyForm({ open, onClose, onSuccess, family }: FamilyFormProps) {
         totalIncome: family.totalIncome?.toString() || '',
         paysRent: Boolean(family.paysRent),
         rentValue: family.rentValue?.toString() || '',
+        hasDisabled: (family.disabledCount || 0) > 0,
+        disabledCount: family.disabledCount?.toString() || '',
         requestReason: family.requestReason || '',
         origin: family.origin || '',
         referrerName: family.referrerName || '',
@@ -201,6 +207,7 @@ function FamilyForm({ open, onClose, onSuccess, family }: FamilyFormProps) {
         householdSize: parseInt(formData.householdSize.toString()),
         totalIncome: parseFloat(formData.totalIncome),
         rentValue: formData.paysRent && formData.rentValue.trim() ? parseFloat(formData.rentValue) : undefined,
+        disabledCount: formData.hasDisabled ? parseInt(formData.disabledCount || '0') : 0,
       }
 
       if (family) {
@@ -355,6 +362,33 @@ function FamilyForm({ open, onClose, onSuccess, family }: FamilyFormProps) {
                 }
                 label="Paga aluguel?" />
             </Grid>
+            <Grid item xs={12} sm={6}>
+              <FormControlLabel
+                control={
+                  <Switch checked={formData.hasDisabled}
+                    onChange={(e) => setFormData(prev => ({
+                      ...prev,
+                      hasDisabled: e.target.checked,
+                      disabledCount: e.target.checked ? prev.disabledCount : '',
+                    }))}
+                    disabled={loading} />
+                }
+                label="Pessoa com deficiência na família?" />
+            </Grid>
+            {formData.hasDisabled && (
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  required
+                  label="Quantas pessoas com deficiência?"
+                  type="number"
+                  value={formData.disabledCount}
+                  onChange={handleChange('disabledCount')}
+                  disabled={loading}
+                  inputProps={{ min: 1, step: 1 }}
+                />
+              </Grid>
+            )}
             {formData.paysRent && (
               <Grid item xs={12} sm={6}>
                 <TextField
@@ -412,7 +446,7 @@ function FamilyForm({ open, onClose, onSuccess, family }: FamilyFormProps) {
                   <MenuItem value="CADASTRO_PROPRIO">Cadastro Próprio</MenuItem>
                   <MenuItem value="INDICACAO">Indicação</MenuItem>
                   <MenuItem value="IGREJA">Igreja</MenuItem>
-                  <MenuItem value="DIACONO">Diácono</MenuItem>
+                  <MenuItem value="DIACONO">Voluntário ADM</MenuItem>
                   <MenuItem value="PASTOR">Pastor</MenuItem>
                   <MenuItem value="MEMBRO_IGREJA">Membro da Igreja</MenuItem>
                   <MenuItem value="INSTITUICAO_PARCEIRA">Instituição Parceira</MenuItem>

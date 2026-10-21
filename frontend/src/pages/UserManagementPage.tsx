@@ -38,7 +38,7 @@ import ThemeToggle from '../components/ThemeToggle';
 const roleLabel: Record<string, string> = {
   ADMIN: 'Administração',
   RH_TESOURARIA: 'RH / Tesouraria',
-  DIACONO: 'Diácono',
+  DIACONO: 'Voluntário ADM',
 };
 
 const formatRole = (name: string) => roleLabel[name.replace('ROLE_', '')] ?? name;
@@ -195,7 +195,7 @@ function UserManagementPage() {
                 disabled={loading}
               >
                 <MenuItem value="RH_TESOURARIA">RH / Tesouraria</MenuItem>
-                <MenuItem value="DIACONO">Diácono</MenuItem>
+                <MenuItem value="DIACONO">Voluntário ADM</MenuItem>
               </Select>
             </FormControl>
             <Button type="submit" variant="contained" size="large" disabled={loading}>

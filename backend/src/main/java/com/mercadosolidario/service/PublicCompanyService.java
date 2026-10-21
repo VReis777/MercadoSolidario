@@ -29,6 +29,7 @@ public class PublicCompanyService {
 
     private static final String INSTAGRAM_URL_KEY = "INSTAGRAM_URL";
     private static final String WHATSAPP_GROUP_URL_KEY = "WHATSAPP_GROUP_URL";
+    private static final String DEFAULT_WHATSAPP = "https://wa.me/552422426665";
     private static final String DEFAULT_INSTAGRAM =
         "https://www.instagram.com/mercadosolidariopetropolis";
     private static final Map<String, String> INTEREST_LABELS = Map.of(
@@ -54,7 +55,7 @@ public class PublicCompanyService {
             .orElse(DEFAULT_INSTAGRAM);
         String whatsapp = settingRepository.findByKey(WHATSAPP_GROUP_URL_KEY)
             .map(SystemSetting::getValue).filter(value -> !value.isBlank())
-            .orElse(null);
+            .orElse(DEFAULT_WHATSAPP);
         return new SiteInfoResponse(instagram, whatsapp);
     }
 
@@ -62,7 +63,7 @@ public class PublicCompanyService {
     public SiteInfoResponse updateSiteInfo(SiteInfoUpdateRequest request) {
         saveSetting(WHATSAPP_GROUP_URL_KEY,
             request.getWhatsappGroupUrl() == null ? "" : request.getWhatsappGroupUrl(),
-            "Link do grupo de WhatsApp exibido na página de empresas");
+            "Link de contato de WhatsApp exibido na página de empresas");
         if (request.getInstagramUrl() != null) {
             saveSetting(INSTAGRAM_URL_KEY, request.getInstagramUrl(),
                 "Link do Instagram exibido nas páginas públicas");

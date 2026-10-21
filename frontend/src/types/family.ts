@@ -8,6 +8,9 @@ export interface Family {
   dependents: number
   householdSize: number
   totalIncome: number
+  paysRent?: boolean
+  rentValue?: number
+  disabledCount?: number
   requestReason: string
   origin: string
   referrerName?: string
@@ -40,6 +43,9 @@ export interface FamilyCreateRequest {
   address?: string
   householdSize: number
   totalIncome: number
+  paysRent?: boolean
+  rentValue?: number
+  disabledCount?: number
   requestReason: string
   origin: string
   referrerName?: string
@@ -54,6 +60,9 @@ export interface FamilyUpdateRequest {
   address?: string
   householdSize: number
   totalIncome: number
+  paysRent?: boolean
+  rentValue?: number
+  disabledCount?: number
   requestReason: string
   origin: string
   referrerName?: string

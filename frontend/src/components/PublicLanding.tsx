@@ -14,7 +14,8 @@ import {
 } from '@mui/material'
 import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder'
 import BusinessIcon from '@mui/icons-material/Business'
-import HomeIcon from '@mui/icons-material/Home'
+// Reabre em dezembro com o botão QUERO SER BENEFICIADO:
+// import HomeIcon from '@mui/icons-material/Home'
 
 interface PublicLandingProps {
   onPrimaryAction?: (action: 'donate' | 'company' | 'benefit') => void
@@ -79,27 +80,19 @@ function PublicLanding({ onPrimaryAction, onBenefitRequest, extraActions }: Publ
         }}
       >
         <Container maxWidth="md" sx={{ position: 'relative' }}>
-          <Typography variant="overline" sx={{ letterSpacing: 3, fontWeight: 800 }}>
-            MEVAM PETRÓPOLIS · 2026
-          </Typography>
           <Box sx={{ mt: 1, mb: 1 }}>
-            <Typography variant="h3" component="h1"
-              sx={{ fontWeight: 900, lineHeight: 1.05, fontSize: { xs: '2.4rem', sm: '3.2rem', md: '4rem' } }}>
-              Mercado
-            </Typography>
-            <Typography component="span"
+            <Box
+              component="img"
+              src="/logo.png"
+              alt="Mercado Solidário — MEVAM Petrópolis 2026"
               sx={{
-                display: 'inline-block',
-                fontWeight: 900,
-                fontSize: { xs: '2rem', sm: '2.8rem', md: '3.4rem' },
-                color: '#0B2B4B',
-                bgcolor: '#3EC6C0',
-                px: 2,
-                borderRadius: 1,
-                boxShadow: '0 3px 0 #FFC42E',
-              }}>
-              Solidário
-            </Typography>
+                width: '100%',
+                maxWidth: { xs: 300, sm: 400, md: 480 },
+                height: 'auto',
+                borderRadius: 2,
+                boxShadow: '0 8px 24px rgba(0,0,0,0.35)',
+              }}
+            />
           </Box>
           <Typography variant="h6" sx={{ fontWeight: 500, mt: 2, mb: 3 }}>
             Natal com dignidade para todas as famílias
@@ -133,6 +126,7 @@ function PublicLanding({ onPrimaryAction, onBenefitRequest, extraActions }: Publ
             >
               SOU EMPRESA
             </Button>
+            {/* Reabre em dezembro: cadastro público de beneficiários
             <Button
               variant="text"
               size="large"
@@ -141,7 +135,7 @@ function PublicLanding({ onPrimaryAction, onBenefitRequest, extraActions }: Publ
               sx={{ minWidth: { xs: '100%', sm: 220 }, color: 'white' }}
             >
               QUERO SER BENEFICIADO
-            </Button>
+            </Button> */}
           </Box>
           {extraActions && <Box sx={{ mt: 3 }}>{extraActions}</Box>}
         </Container>

@@ -21,7 +21,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class MigrationIntegrationTest {
 
     private static final List<String> EXPECTED_VERSIONS =
-            List.of("1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24", "25", "26", "27", "28");
+            List.of("1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24", "25", "26", "27", "28", "29");
     private static final List<String> EXPECTED_SCRIPTS = List.of(
             "V1__initial_schema.sql",
             "V2__insert_initial_roles.sql",
@@ -50,7 +50,8 @@ class MigrationIntegrationTest {
             "V25__cash_movements.sql",
             "V26__below_minimum_wage_bonus.sql",
             "V27__no_rent_threshold_1900.sql",
-            "V28__no_rent_small_household.sql"
+            "V28__no_rent_small_household.sql",
+            "V29__disabled_members_count.sql"
     );
 
     @Autowired

@@ -14,13 +14,14 @@ function PublicPage() {
       onBenefitRequest={() => navigate('/cadastro-beneficiado')}
       extraActions={
         <>
+          {/* Reabre em dezembro: pedido público de atendimento
           <Button
             variant="contained"
             onClick={() => navigate('/solicitar-atendimento')}
             sx={{ bgcolor: 'white', color: 'primary.main', mr: 1, mb: 1, '&:hover': { bgcolor: '#f3f3f3' } }}
           >
             Preciso de atendimento
-          </Button>
+          </Button> */}
           <Button
             variant="contained"
             onClick={() => navigate('/entrar')}
