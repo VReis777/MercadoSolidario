@@ -29,6 +29,10 @@ frontend/.vite/
 # Database
 *.sql
 !database/migrations/*.sql
+# Migrations Flyway do backend PRECISAM ser versionadas (deploy em banco novo)
+!backend/src/main/resources/db/migration/*.sql
+!backend/src/main/resources/db/migration-postgresql/*.sql
+!backend/src/main/resources/db/migration-h2/*.sql
 
 # Backup
 backup/
