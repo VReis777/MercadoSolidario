@@ -29,6 +29,15 @@ const interestOptions = [
   { value: 'SER_PARCEIRO', label: 'Quero ser parceiro do projeto' },
 ]
 
+const DEFAULT_WHATSAPP = 'https://wa.me/552422426665'
+const WHATSAPP_GREETING = 'Olá estou contactando direto do Site Mercado Solidário e gostaria de Ajudar/Doar algo.'
+
+function whatsappLink(base: string | undefined, message: string): string {
+  const url = base && base.trim() ? base.trim() : DEFAULT_WHATSAPP
+  const separator = url.includes('?') ? '&' : '?'
+  return `${url}${separator}text=${encodeURIComponent(message)}`
+}
+
 interface SiteInfo {
   instagramUrl?: string
   whatsappGroupUrl?: string
@@ -90,10 +99,28 @@ function CompanyPage() {
           </Typography>
           <Grid container spacing={2} sx={{ mb: 3 }}>
             {interestOptions.map((option) => (
-              <Grid item xs={12} sm={4} key={option.value}>
-                <Card variant="outlined" sx={{ height: '100%' }}>
+              <Grid item xs={12} sm={6} md={3} key={option.value}>
+                <Card
+                  variant="outlined"
+                  component="a"
+                  href={whatsappLink(siteInfo.whatsappGroupUrl, `Olá! Estou contactando direto do Site Mercado Solidário. ${option.label}.`)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  sx={{
+                    height: '100%',
+                    display: 'block',
+                    textDecoration: 'none',
+                    color: 'inherit',
+                    cursor: 'pointer',
+                    transition: 'border-color .15s, box-shadow .15s',
+                    '&:hover': { borderColor: 'success.main', boxShadow: 2 },
+                  }}
+                >
                   <CardContent>
                     <Typography fontWeight={700} variant="body1">{option.label}</Typography>
+                    <Typography variant="caption" color="success.main" sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 1 }}>
+                      <WhatsAppIcon fontSize="inherit" /> Chamar no WhatsApp
+                    </Typography>
                   </CardContent>
                 </Card>
               </Grid>
@@ -108,12 +135,11 @@ function CompanyPage() {
               variant="outlined"
               startIcon={<WhatsAppIcon />}
               component="a"
-              href={siteInfo.whatsappGroupUrl || undefined}
+              href={whatsappLink(siteInfo.whatsappGroupUrl, WHATSAPP_GREETING)}
               target="_blank"
               rel="noopener noreferrer"
-              disabled={!siteInfo.whatsappGroupUrl}
             >
-              {siteInfo.whatsappGroupUrl ? 'Falar no WhatsApp' : 'WhatsApp em breve'}
+              Falar no WhatsApp
             </Button>
             <Button
               variant="text"
