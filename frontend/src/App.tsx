@@ -7,6 +7,7 @@ import { ThemeProvider as CustomThemeProvider, useTheme } from './contexts/Theme
 import { ProtectedRoute } from './auth/ProtectedRoute'
 import { RoleGuard } from './auth/RoleGuard'
 import PublicPage from './pages/PublicPage'
+import LandingPage from './pages/LandingPage'
 import LoginPage from './pages/LoginPage'
 import DashboardPage from './pages/DashboardPage'
 import FamiliesPage from './pages/FamiliesPage'
@@ -65,6 +66,7 @@ function AppContent() {
       {showPublicNavbar && <AppNavbar />}
       <Routes>
         <Route path="/" element={<PublicPage />} />
+        <Route path="/nossahistoria" element={<LandingPage />} />
         <Route path="/donate" element={<Navigate to="/doacao" replace />} />
         <Route path="/doacao" element={<PublicDonationPage />} />
         {/* Reabre em dezembro: fluxos públicos de pedido de atendimento e cadastro

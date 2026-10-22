@@ -49,6 +49,7 @@ import { styled } from '@mui/material/styles'
 import { useAuth } from '../auth/AuthContext'
 import { dashboardService, type DashboardSummary } from '../services/dashboardService'
 import ThemeToggle from '../components/ThemeToggle'
+import { formatRole } from '../utils/roleLabels'
 
 const DashboardContainer = styled(Box)(({ theme }) => ({
   minHeight: '100vh',
@@ -335,7 +336,7 @@ function DashboardPage() {
             </IconButton>
             <ThemeToggle />
             <Chip
-              label={user?.roles[0]?.replace('ROLE_', '') || 'USER'}
+              label={user?.roles[0] ? formatRole(user.roles[0]) : 'USER'}
               size="small"
               sx={{ bgcolor: 'rgba(255,255,255,0.2)', color: 'white' }}
             />

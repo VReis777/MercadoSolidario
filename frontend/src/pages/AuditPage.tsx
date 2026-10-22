@@ -18,6 +18,7 @@ import RegistrationsTab from '../components/audit/RegistrationsTab'
 import BasketTab from '../components/audit/BasketTab'
 import campaignService, { CampaignOverview } from '../services/campaignService'
 import { getApiErrorMessage } from '../utils/apiError'
+import { formatRole } from '../utils/roleLabels'
 
 const tips = [
   'Peça CPF e telefone em todo cadastro novo: é o que permite o cruzamento automático com 2024 e 2025 (a planilha de 2024 não tem CPF).',
@@ -102,7 +103,7 @@ function AuditPage() {
 
   const campaignYear = overview?.campaignYear ?? new Date().getFullYear()
   const historyYears = Object.keys(overview?.historicalByYear ?? {}).map(Number).sort((a, b) => b - a)
-  const roleLabel = user?.roles?.map((r) => r.replace('ROLE_', '').replace('_', '/')).join(', ')
+  const roleLabel = user?.roles?.map((r) => formatRole(r)).join(', ')
 
   const handleLogout = async () => {
     await logout()
