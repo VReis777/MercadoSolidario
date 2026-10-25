@@ -133,8 +133,10 @@ function LandingPage() {
                 width: 'auto',
                 bgcolor: '#FFFFFF',
                 px: 2,
-                py: 1,
+                pt: 0,
+                pb: 2.5,
                 borderRadius: 2,
+                mt: { sm: 3 },
               }}
             />
           </Box>
@@ -348,7 +350,7 @@ function LandingPage() {
                 component="img"
                 src="/logo-terefrutas.png"
                 alt="Logo do Grupo Terê Frutas"
-                sx={{ height: { xs: 70, md: 90 }, width: 'auto', bgcolor: '#FFFFFF', p: 1, borderRadius: 2 }}
+                sx={{ height: { xs: 70, md: 90 }, width: 'auto', bgcolor: '#FFFFFF', px: 1, pt: 0, pb: 2, borderRadius: 2 }}
               />
               <Typography variant="caption" display="block" sx={{ mt: 1, color: '#44506B', fontWeight: 600 }}>
                 Parceira — Grupo Terê Frutas
