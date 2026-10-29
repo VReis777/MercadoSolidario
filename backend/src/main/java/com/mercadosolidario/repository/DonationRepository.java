@@ -75,4 +75,12 @@ public interface DonationRepository extends JpaRepository<Donation, Long> {
 
     @Query("SELECT COUNT(d) FROM Donation d WHERE d.status = :status")
     Long countByStatus(@Param("status") DonationStatus status);
+
+    @Query("SELECT d.goalItem.id, COALESCE(SUM(d.quantity), 0) FROM Donation d WHERE d.type = com.mercadosolidario.model.enums.DonationType.PRODUTO AND d.goalItem IS NOT NULL AND d.status IN :statuses GROUP BY d.goalItem.id")
+    List<Object[]> sumProductQuantityByGoalItemAndStatuses(@Param("statuses") List<DonationStatus> statuses);
+
+    List<Donation> findByStatusOrderByCreatedAtDesc(DonationStatus status);
+
+    @Query("SELECT DISTINCT d.donorName FROM Donation d WHERE d.type = com.mercadosolidario.model.enums.DonationType.PRODUTO AND d.status = :status AND d.donorName IS NOT NULL ORDER BY d.donorName")
+    List<String> findDistinctConfirmedProductDonors(@Param("status") DonationStatus status);
 }

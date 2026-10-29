@@ -105,6 +105,39 @@ const donationService = {
     const response = await api.get('/public/donations/pix-info')
     return response.data
   },
+
+  listPledges: async (): Promise<DonationPledge[]> => {
+    const response = await api.get<DonationPledge[]>('/donations/pledges')
+    return response.data
+  },
+
+  receivePledge: async (id: number, productId?: number): Promise<DonationPledge> => {
+    const response = await api.post<DonationPledge>(`/donations/${id}/receive`,
+      productId ? { productId } : {})
+    return response.data
+  },
+
+  rejectPledge: async (id: number): Promise<DonationPledge> => {
+    const response = await api.post<DonationPledge>(`/donations/${id}/reject`)
+    return response.data
+  },
+}
+
+export interface DonationPledge {
+  id: number
+  goalItemId: number | null
+  goalItemName: string | null
+  quantity: number | null
+  packageSize: number | null
+  unit: string | null
+  donorName: string | null
+  donorContact: string | null
+  anonymous: boolean
+  selfDelivery: boolean
+  status: DonationStatus
+  createdAt: string
+  confirmedAt: string | null
+  confirmedBy: string | null
 }
 
 export default donationService

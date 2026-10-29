@@ -32,8 +32,18 @@ public class Donation {
     @Column(name = "donor_name", length = 255)
     private String donorName;
 
+    @Column(name = "donor_contact", length = 160)
+    private String donorContact;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "donation_goal_item_id")
+    private DonationGoalItem goalItem;
+
     @Column(name = "is_anonymous")
     private Boolean isAnonymous = false;
+
+    @Column(name = "self_delivery", nullable = false)
+    private Boolean selfDelivery = false;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status")

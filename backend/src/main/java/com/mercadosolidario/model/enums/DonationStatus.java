@@ -2,6 +2,7 @@ package com.mercadosolidario.model.enums;
 
 public enum DonationStatus {
     CRIADA,
+    PROMETIDA,
     AGUARDANDO_PAGAMENTO,
     PAGA,
     CANCELADA,

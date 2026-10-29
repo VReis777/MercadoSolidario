@@ -1,10 +1,14 @@
 package com.mercadosolidario.controller;
 
+import com.mercadosolidario.dto.donation.DonationGoalItemResponse;
+import com.mercadosolidario.dto.donation.DonationPledgeRequest;
+import com.mercadosolidario.dto.donation.DonationPledgeResponse;
 import com.mercadosolidario.dto.donation.PublicPixInfoResponse;
 import com.mercadosolidario.dto.family.FamilyCreateRequest;
 import com.mercadosolidario.dto.family.FamilyResponse;
 import com.mercadosolidario.dto.publicrequest.CompanyContactRequest;
 import com.mercadosolidario.dto.publicrequest.SiteInfoResponse;
+import com.mercadosolidario.service.DonationGoalService;
 import com.mercadosolidario.service.DonationService;
 import com.mercadosolidario.service.FamilyService;
 import com.mercadosolidario.service.PublicCompanyService;
@@ -18,6 +22,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -26,6 +31,7 @@ import java.util.Map;
 public class PublicDonationController {
 
     private final DonationService donationService;
+    private final DonationGoalService donationGoalService;
     private final FamilyService familyService;
     private final PublicCompanyService companyService;
 
@@ -37,6 +43,22 @@ public class PublicDonationController {
     @GetMapping("/site-info")
     public SiteInfoResponse siteInfo() {
         return companyService.siteInfo();
+    }
+
+    @GetMapping("/donation-goals")
+    public List<DonationGoalItemResponse> donationGoals() {
+        return donationGoalService.publicSummary();
+    }
+
+    @GetMapping("/donation-donors")
+    public List<String> donationDonors() {
+        return donationGoalService.confirmedDonors();
+    }
+
+    @PostMapping("/donation-pledges")
+    @ResponseStatus(HttpStatus.CREATED)
+    public DonationPledgeResponse pledge(@Valid @RequestBody DonationPledgeRequest request) {
+        return donationGoalService.pledge(request);
     }
 
     @PostMapping("/companies")

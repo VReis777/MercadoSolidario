@@ -29,7 +29,7 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack'
 import VolunteerActivismIcon from '@mui/icons-material/VolunteerActivism'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
-import donationService, { Donation, DonationStatus, PixConfiguration } from '../services/donationService'
+import donationService, { Donation, DonationPledge, DonationStatus, PixConfiguration } from '../services/donationService'
 import cashService, { CashSummary } from '../services/cashService'
 import stockService, { Product } from '../services/stockService'
 import { getApiErrorMessage } from '../utils/apiError'
@@ -77,6 +77,9 @@ function DonationsPage() {
   const [cashAmount, setCashAmount] = useState('')
   const [cashDescription, setCashDescription] = useState('')
   const [cashFile, setCashFile] = useState<File | null>(null)
+  const [pledges, setPledges] = useState<DonationPledge[]>([])
+  const [receiveTarget, setReceiveTarget] = useState<DonationPledge | null>(null)
+
 
   const loadData = useCallback(async () => {
     setLoading(true)
@@ -89,6 +92,7 @@ function DonationsPage() {
       setDonations(donationResult)
       setProducts(productResult)
       setCash(await cashService.summary().catch(() => null))
+      setPledges(await donationService.listPledges().catch(() => []))
       if (isAdmin) {
         const pix = await donationService.getPixConfiguration()
         setConfiguration(pix)
@@ -205,6 +209,36 @@ function DonationsPage() {
     }
   }
 
+  const rejectPledge = async (pledge: DonationPledge) => {
+    setSaving(true)
+    setError('')
+    try {
+      await donationService.rejectPledge(pledge.id)
+      setMessage('Promessa recusada — voltou a somar na lista pendente.')
+      await loadData()
+    } catch (rejectError) {
+      setError(getApiErrorMessage(rejectError, 'Não foi possível recusar a promessa.'))
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const receivePledge = async () => {
+    if (!receiveTarget) return
+    setSaving(true)
+    setError('')
+    try {
+      await donationService.receivePledge(receiveTarget.id)
+      setMessage(`${receiveTarget.quantity} pacote(s) de ${receiveTarget.goalItemName} recebidos — o estoque já foi atualizado e o doador aparece nos agradecimentos.`)
+      setReceiveTarget(null)
+      await loadData()
+    } catch (receiveError) {
+      setError(getApiErrorMessage(receiveError, 'Não foi possível confirmar o recebimento.'))
+    } finally {
+      setSaving(false)
+    }
+  }
+
   const downloadCashAttachment = async (id: number) => {
     try {
       const { blob, filename } = await cashService.downloadAttachment(id)
@@ -315,6 +349,47 @@ function DonationsPage() {
 
         <Card sx={{ mb: 3 }}>
           <CardContent>
+            <Typography variant="h5" color="primary" gutterBottom>Promessas de itens pendentes</Typography>
+            {pledges.length === 0 && (
+              <Typography variant="body2" color="text.secondary">
+                Nenhuma promessa aguardando recebimento.
+              </Typography>
+            )}
+            <Stack spacing={1}>
+              {pledges.map((pledge) => (
+                <Stack key={pledge.id} direction={{ xs: 'column', sm: 'row' }} alignItems={{ sm: 'center' }} gap={1}
+                  sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1, p: 1 }}>
+                  <Typography fontWeight={700}>
+                    {pledge.quantity} pacote(s) de {pledge.packageSize} {pledge.unit} · {pledge.goalItemName}
+                  </Typography>
+                  <Typography variant="body2" sx={{ flexGrow: 1 }}>
+                    {pledge.anonymous ? 'Anônimo' : pledge.donorName}
+                    {pledge.donorContact ? ` · ${pledge.donorContact}` : ''}
+                    {pledge.selfDelivery ? ' · leva ao MEVAM' : ' · combinar retirada'}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    {new Date(pledge.createdAt).toLocaleString('pt-BR')}
+                  </Typography>
+                  {isAdmin && (
+                    <Stack direction="row" gap={1}>
+                      <Button size="small" variant="contained" color="success"
+                        onClick={() => setReceiveTarget(pledge)}>
+                        Recebido na igreja
+                      </Button>
+                      <Button size="small" variant="outlined" color="error"
+                        onClick={() => void rejectPledge(pledge)}>
+                        Recusar
+                      </Button>
+                    </Stack>
+                  )}
+                </Stack>
+              ))}
+            </Stack>
+          </CardContent>
+        </Card>
+
+        <Card sx={{ mb: 3 }}>
+          <CardContent>
             <Typography variant="h5" color="primary" gutterBottom>Registrar doação de produto</Typography>
             {products.every((product) => !product.active) && (
               <Alert severity="info" sx={{ mb: 2 }}>Cadastre e ative um produto no estoque antes de registrar uma doação de produto.</Alert>
@@ -406,6 +481,24 @@ function DonationsPage() {
           </Grid>
         )}
       </Container>
+
+      <Dialog open={receiveTarget !== null} onClose={() => !saving && setReceiveTarget(null)} maxWidth="xs" fullWidth>
+        <DialogTitle>Confirmar recebimento na igreja</DialogTitle>
+        <DialogContent>
+          <Stack spacing={2} sx={{ mt: 1 }}>
+            <Typography variant="body2">
+              {receiveTarget && `${receiveTarget.quantity} pacote(s) de ${receiveTarget.packageSize} ${receiveTarget.unit} de ${receiveTarget.goalItemName} — ${receiveTarget.anonymous ? 'doador anônimo' : receiveTarget.donorName}`}
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              Ao confirmar, os pacotes entram automaticamente no produto ligado a este item no estoque e o doador passa para a lista pública de agradecimentos.
+            </Typography>
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setReceiveTarget(null)} disabled={saving}>Cancelar</Button>
+          <Button variant="contained" onClick={() => void receivePledge()} disabled={saving}>Confirmar recebimento</Button>
+        </DialogActions>
+      </Dialog>
 
       <Dialog open={cashOpen} onClose={() => !saving && setCashOpen(false)} fullWidth maxWidth="sm" fullScreen={isMobile}>
         <DialogTitle>Registrar movimentação de caixa</DialogTitle>

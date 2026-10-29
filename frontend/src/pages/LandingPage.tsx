@@ -1,18 +1,24 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
-  AppBar, Box, Button, Container, Divider, Drawer, Grid, IconButton, Link,
-  List, ListItemButton, ListItemText, Paper, Toolbar, Typography,
+  Alert, AppBar, Box, Button, Checkbox, Container, Dialog, DialogActions,
+  DialogContent, DialogTitle, Divider, Drawer, FormControlLabel, Grid,
+  IconButton, Link, List, ListItemButton, ListItemText, Paper,
+  TextField, Toolbar, Typography,
 } from '@mui/material'
 import MenuIcon from '@mui/icons-material/Menu'
 import FavoriteIcon from '@mui/icons-material/Favorite'
 import InstagramIcon from '@mui/icons-material/Instagram'
+import VolunteerActivismIcon from '@mui/icons-material/VolunteerActivism'
+import donationGoalService, { DonationGoalItem } from '../services/donationGoalService'
+import { getApiErrorMessage } from '../utils/apiError'
 
 const navItems = [
   { label: 'Início', target: 'inicio' },
   { label: 'Nossa História', target: 'historia' },
   { label: 'Nosso Impacto', target: 'impacto' },
   { label: '2026', target: 'desafio' },
+  { label: 'Itens da Cesta', target: 'cesta' },
 ]
 
 const impactCards = [
@@ -37,9 +43,92 @@ function scrollToSection(id: string) {
   document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
 }
 
+function fmtQty(value: number, unit: string): string {
+  const rounded = Number(value)
+  const text = Number.isInteger(rounded)
+    ? rounded.toLocaleString('pt-BR')
+    : rounded.toLocaleString('pt-BR', { maximumFractionDigits: 2 })
+  return `${text} ${unit}`
+}
+
+// Embalagem fracionada vira g/ml para o doador entender (0,5 kg → 500 g; 0,9 L → 900 ml)
+function fmtPkg(value: number, unit: string): string {
+  if (value < 1 && unit === 'kg') return `${Math.round(value * 1000)} g`
+  if (value < 1 && unit === 'L') return `${Math.round(value * 1000)} ml`
+  return fmtQty(value, unit)
+}
+
 function LandingPage() {
   const navigate = useNavigate()
   const [menuOpen, setMenuOpen] = useState(false)
+  const [goalItems, setGoalItems] = useState<DonationGoalItem[]>([])
+  const [donorNames, setDonorNames] = useState<string[]>([])
+  const [pledgeItem, setPledgeItem] = useState<DonationGoalItem | null>(null)
+  const [pledgeQty, setPledgeQty] = useState('')
+  const [pledgeName, setPledgeName] = useState('')
+  const [pledgeContact, setPledgeContact] = useState('')
+  const [pledgeAnon, setPledgeAnon] = useState(false)
+  const [pledgeSelfDelivery, setPledgeSelfDelivery] = useState(false)
+  const [pledgeSending, setPledgeSending] = useState(false)
+  const [pledgeError, setPledgeError] = useState<string | null>(null)
+  const [pledgeDone, setPledgeDone] = useState(false)
+
+  const loadGoals = async () => {
+    try {
+      const [items, names] = await Promise.all([
+        donationGoalService.list(),
+        donationGoalService.donors(),
+      ])
+      setGoalItems(items)
+      setDonorNames(names)
+    } catch {
+      // A lista de doação é informativa: se a API não responder, a página continua funcionando.
+    }
+  }
+  useEffect(() => { loadGoals() }, [])
+
+  const openPledge = (item: DonationGoalItem) => {
+    setPledgeItem(item)
+    setPledgeQty('')
+    setPledgeError(null)
+    setPledgeDone(false)
+    setPledgeSelfDelivery(false)
+  }
+
+  const submitPledge = async () => {
+    if (!pledgeItem) return
+    const packages = Number(pledgeQty)
+    if (!Number.isFinite(packages) || packages < 1) {
+      setPledgeError('Informe quantos pacotes você vai doar (mínimo 1).')
+      return
+    }
+    if (!pledgeAnon && !pledgeName.trim()) {
+      setPledgeError('Informe seu nome ou o da sua empresa (ou marque doação anônima).')
+      return
+    }
+    if (!pledgeSelfDelivery && !pledgeContact.trim()) {
+      setPledgeError('Informe um contato para combinarmos a retirada — ou marque que você mesmo leva até o MEVAM.')
+      return
+    }
+    setPledgeSending(true)
+    setPledgeError(null)
+    try {
+      await donationGoalService.pledge({
+        goalItemId: pledgeItem.id,
+        packages: Math.round(packages),
+        donorName: pledgeAnon ? undefined : pledgeName.trim(),
+        donorContact: pledgeContact.trim() || undefined,
+        anonymous: pledgeAnon,
+        selfDelivery: pledgeSelfDelivery,
+      })
+      setPledgeDone(true)
+      loadGoals()
+    } catch (error) {
+      setPledgeError(getApiErrorMessage(error, 'Não foi possível registrar a promessa de doação.'))
+    } finally {
+      setPledgeSending(false)
+    }
+  }
 
   const goTo = (target: string) => {
     setMenuOpen(false)
@@ -314,6 +403,195 @@ function LandingPage() {
           </Typography>
         </Container>
       </Box>
+
+      {/* Lista de itens para doação */}
+      <Box id="cesta" component="section" sx={{ py: { xs: 7, md: 10 }, bgcolor: '#FFFFFF' }}>
+        <Container maxWidth="lg">
+          <Typography variant="h4" component="h2" sx={{ color: '#1B2A6B', fontWeight: 800, mb: 2, textAlign: 'center' }}>
+            O que cada cesta precisa?
+          </Typography>
+          <Typography sx={{ fontSize: '1.05rem', color: '#44506B', mb: 5, maxWidth: 640, mx: 'auto', textAlign: 'center' }}>
+            Esta é a lista do que precisamos para alcançar as 500 famílias.
+            O que cada doador prometer é descontado do pendente em tempo real —
+            assim ninguém compra duas vezes a mesma coisa.
+          </Typography>
+          {goalItems.length > 0 ? (
+            <Grid container spacing={3}>
+              {goalItems.map((item) => (
+                <Grid item xs={12} sm={6} md={4} key={item.id}>
+                  <Paper
+                    elevation={0}
+                    sx={{
+                      p: 3,
+                      height: '100%',
+                      border: '1px solid #E3E8EF',
+                      borderRadius: 3,
+                      borderTop: '4px solid #FFC42E',
+                      bgcolor: '#FFFFFF',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 0.5,
+                    }}
+                  >
+                    <Typography variant="subtitle1" sx={{ fontWeight: 800, color: '#1B2A6B' }}>
+                      {item.name}
+                    </Typography>
+                    <Typography variant="caption" sx={{ color: '#44506B' }}>
+                      {`${Math.round(item.perFamilyQuantity / item.packageSize)} ${Math.round(item.perFamilyQuantity / item.packageSize) === 1 ? 'pacote' : 'pacotes'} de ${fmtPkg(item.packageSize, item.unit)} por família`}
+                    </Typography>
+                    <Box sx={{ mt: 1 }}>
+                      <Typography variant="h5" sx={{ fontWeight: 800, color: '#19B8D2' }}>
+                        {fmtQty(item.remainingQuantity, item.unit)}
+                      </Typography>
+                      <Typography variant="body2" sx={{ color: '#44506B' }}>
+                        pendentes de {fmtQty(item.neededQuantity, item.unit)} necessários
+                        {item.remainingPackages > 0 && (
+                          <> ≈ {item.remainingPackages.toLocaleString('pt-BR')} pacotes de {fmtPkg(item.packageSize, item.unit)}</>
+                        )}
+                      </Typography>
+                    </Box>
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      onClick={() => openPledge(item)}
+                      disabled={item.remainingQuantity <= 0}
+                      sx={{
+                        mt: 'auto',
+                        pt: 0,
+                        alignSelf: 'flex-start',
+                        borderColor: '#19B8D2',
+                        color: '#19B8D2',
+                        fontWeight: 700,
+                        '&:hover': { borderColor: '#0E93A8', color: '#0E93A8' },
+                      }}
+                    >
+                      {item.remainingQuantity <= 0 ? 'Coberto' : 'Quero doar'}
+                    </Button>
+                  </Paper>
+                </Grid>
+              ))}
+            </Grid>
+          ) : (
+            <Typography sx={{ textAlign: 'center', color: '#44506B' }}>
+              Carregando a lista de necessidades…
+            </Typography>
+          )}
+
+          {donorNames.length > 0 && (
+            <Paper
+              elevation={0}
+              sx={{
+                mt: 6,
+                p: 3,
+                borderRadius: 3,
+                bgcolor: '#FBF9F1',
+                border: '1px solid #E3E8EF',
+                textAlign: 'center',
+              }}
+            >
+              <Typography variant="subtitle1" sx={{ fontWeight: 800, color: '#1B2A6B', mb: 1 }}>
+                <VolunteerActivismIcon sx={{ verticalAlign: 'middle', mr: 1, color: '#19B8D2' }} />
+                Obrigado a quem já doou
+              </Typography>
+              <Typography sx={{ color: '#44506B', lineHeight: 1.9 }}>
+                {donorNames.join(', ')}
+              </Typography>
+            </Paper>
+          )}
+        </Container>
+      </Box>
+
+      {/* Diálogo de promessa de doação */}
+      <Dialog open={pledgeItem !== null} onClose={() => setPledgeItem(null)} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ fontWeight: 800, color: '#1B2A6B' }}>
+          Doar {pledgeItem?.name}
+        </DialogTitle>
+        <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
+          {pledgeDone ? (
+            <Alert severity="success">
+              Promessa registrada. Nossa equipe vai validar quando os itens
+              chegarem à igreja — aí seu nome entra na lista de agradecimentos.
+            </Alert>
+          ) : (
+            <>
+              {pledgeItem && (
+                <Typography variant="body2" sx={{ color: '#44506B' }}>
+                  Pendentes: {fmtQty(pledgeItem.remainingQuantity, pledgeItem.unit)}
+                  {pledgeItem.remainingPackages > 0 && (
+                    <> ≈ {pledgeItem.remainingPackages.toLocaleString('pt-BR')} pacotes de {fmtPkg(pledgeItem.packageSize, pledgeItem.unit)}</>
+                  )}
+                </Typography>
+              )}
+              <TextField
+                label={`Quantidade de pacotes de ${fmtPkg(pledgeItem?.packageSize ?? 0, pledgeItem?.unit ?? '')}`}
+                type="number"
+                value={pledgeQty}
+                onChange={(e) => setPledgeQty(e.target.value)}
+                inputProps={{ min: 1 }}
+                required
+                fullWidth
+              />
+              {pledgeItem && Number(pledgeQty) > 0 && (
+                <Paper
+                  elevation={0}
+                  sx={{
+                    p: 2,
+                    textAlign: 'center',
+                    bgcolor: '#FFF6D6',
+                    border: '2px solid #FFC42E',
+                    borderRadius: 2,
+                  }}
+                >
+                  <Typography variant="h6" sx={{ fontWeight: 800, color: '#1B2A6B', lineHeight: 1.3 }}>
+                    {Number(pledgeQty).toLocaleString('pt-BR')} pacote(s) de {fmtPkg(pledgeItem.packageSize, pledgeItem.unit)}
+                  </Typography>
+                  <Typography sx={{ fontWeight: 700, color: '#44506B' }}>
+                    = {fmtQty(Number(pledgeQty) * pledgeItem.packageSize, pledgeItem.unit)} no total
+                  </Typography>
+                </Paper>
+              )}
+              <TextField
+                label="Seu nome ou empresa"
+                value={pledgeName}
+                onChange={(e) => setPledgeName(e.target.value)}
+                disabled={pledgeAnon}
+                fullWidth
+              />
+              <TextField
+                label={pledgeSelfDelivery ? 'Contato (opcional)' : 'Contato'}
+                value={pledgeContact}
+                onChange={(e) => setPledgeContact(e.target.value)}
+                required={!pledgeSelfDelivery}
+                helperText={pledgeSelfDelivery
+                  ? 'Opcional — você mesmo leva a doação'
+                  : 'Obrigatório — para combinarmos a retirada com você'}
+                fullWidth
+              />
+              <FormControlLabel
+                control={<Checkbox checked={pledgeSelfDelivery} onChange={(e) => setPledgeSelfDelivery(e.target.checked)} />}
+                label="Eu mesmo levo a doação até o MEVAM Petrópolis"
+              />
+              <FormControlLabel
+                control={<Checkbox checked={pledgeAnon} onChange={(e) => setPledgeAnon(e.target.checked)} />}
+                label="Doação anônima"
+              />
+              {pledgeError && <Alert severity="error">{pledgeError}</Alert>}
+            </>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          {pledgeDone ? (
+            <Button onClick={() => setPledgeItem(null)} variant="contained">Fechar</Button>
+          ) : (
+            <>
+              <Button onClick={() => setPledgeItem(null)}>Cancelar</Button>
+              <Button onClick={submitPledge} variant="contained" disabled={pledgeSending}>
+                {pledgeSending ? 'Registrando…' : 'Prometer doação'}
+              </Button>
+            </>
+          )}
+        </DialogActions>
+      </Dialog>
 
       {/* Parceiros */}
       <Box component="section" sx={{ py: { xs: 7, md: 10 } }}>

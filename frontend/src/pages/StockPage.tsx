@@ -31,6 +31,7 @@ import SwapVertIcon from '@mui/icons-material/SwapVert'
 import EditIcon from '@mui/icons-material/Edit'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
+import donationGoalService, { DonationGoalItem } from '../services/donationGoalService'
 import stockService, {
   MovementRequest,
   MovementType,
@@ -62,6 +63,7 @@ function StockPage() {
   const [summary, setSummary] = useState<StockSummary | null>(null)
   const [products, setProducts] = useState<Product[]>([])
   const [movements, setMovements] = useState<StockMovement[]>([])
+  const [goalItems, setGoalItems] = useState<DonationGoalItem[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
@@ -89,14 +91,16 @@ function StockPage() {
     setLoading(true)
     setError('')
     try {
-      const [summaryResult, productResult, movementResult] = await Promise.all([
+      const [summaryResult, productResult, movementResult, goalResult] = await Promise.all([
         stockService.getSummary(),
         stockService.listProducts(),
         stockService.listMovements(),
+        donationGoalService.list().catch(() => [] as DonationGoalItem[]),
       ])
       setSummary(summaryResult)
       setProducts(productResult)
       setMovements(movementResult)
+      setGoalItems(goalResult)
     } catch (loadError) {
       setError(getApiErrorMessage(loadError, 'Não foi possível carregar o estoque.'))
     } finally {
@@ -285,6 +289,33 @@ function StockPage() {
                 </CardContent></Card>
               </Grid>
             </Grid>
+            {goalItems.some((item) => item.pledgedQuantity > 0) && (
+              <Card sx={{ mb: 3, border: '2px solid', borderColor: 'warning.main' }}>
+                <CardContent>
+                  <Typography variant="h6" color="primary" gutterBottom>
+                    Prometidos a caminho — aguardando chegar à igreja
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+                    Confirme o recebimento em Doações; os pacotes entram no estoque e somem daqui.
+                  </Typography>
+                  <Grid container spacing={1}>
+                    {goalItems.filter((item) => item.pledgedQuantity > 0).map((item) => {
+                      const promised = Math.round(item.pledgedQuantity / item.packageSize)
+                      return (
+                        <Grid item xs={12} sm={6} md={4} key={item.id}>
+                          <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1, p: 1.5 }}>
+                            <Typography fontWeight={700}>{item.name}</Typography>
+                            <Typography variant="body2" color="warning.main" fontWeight={700}>
+                              {promised} pacote(s) prometidos
+                            </Typography>
+                          </Box>
+                        </Grid>
+                      )
+                    })}
+                  </Grid>
+                </CardContent>
+              </Card>
+            )}
             <Stack direction={{ xs: 'column', sm: 'row' }} alignItems={{ sm: 'center' }} justifyContent="space-between" gap={1} sx={{ mb: 2 }}>
               <Typography variant="h5" color="primary">Produtos</Typography>
               {canEdit && (
@@ -321,6 +352,19 @@ function StockPage() {
                           Saldo: <strong>{product.currentQuantity} {product.unit}</strong> · Mínimo: {product.minimumQuantity} {product.unit}
                           {product.basketQuantity != null && product.basketQuantity > 0 && ` · Cesta: ${product.basketQuantity}/família`}
                         </Typography>
+                        {(() => {
+                          const goal = goalItems.find((item) => item.productId === product.id)
+                          if (!goal) return null
+                          const goalPackages = Math.ceil(goal.neededQuantity / goal.packageSize)
+                          const missing = Math.max(0, goalPackages - product.currentQuantity)
+                          return (
+                            <Typography variant="body2" fontWeight={700}
+                              color={missing > 0 ? 'warning.main' : 'success.main'}>
+                              Meta 500 famílias: {product.currentQuantity}/{goalPackages} pacotes
+                              {missing > 0 ? ` — faltam ${missing}` : ' — meta alcançada'}
+                            </Typography>
+                          )
+                        })()}
                         {product.lowStock && <Alert severity="warning" sx={{ mt: 1 }}>Estoque baixo</Alert>}
                         <Stack direction="row" flexWrap="wrap" gap={1} sx={{ mt: 2 }}>
                           {canEdit && product.active && (

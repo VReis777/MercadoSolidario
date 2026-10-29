@@ -79,7 +79,9 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.POST,
                     "/api/donations/*/confirm-manually",
                     "/api/donations/*/cancel",
-                    "/api/donations/*/expire")
+                    "/api/donations/*/expire",
+                    "/api/donations/*/receive",
+                    "/api/donations/*/reject")
                     .hasRole("ADMIN")
                 .requestMatchers(HttpMethod.POST, "/api/donations/products")
                     .hasAnyRole("ADMIN", "RH_TESOURARIA")

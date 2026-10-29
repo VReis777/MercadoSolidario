@@ -1,6 +1,7 @@
 package com.mercadosolidario.controller;
 
 import com.mercadosolidario.dto.donation.*;
+import com.mercadosolidario.service.DonationGoalService;
 import com.mercadosolidario.service.DonationService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -15,6 +16,7 @@ import java.util.List;
 public class DonationController {
 
     private final DonationService donationService;
+    private final DonationGoalService donationGoalService;
 
     @PostMapping
     public PublicDonationResponse createFinancial(@Valid @RequestBody CreateFinancialDonationRequest request) {
@@ -56,6 +58,26 @@ public class DonationController {
     public DonationResponse createProductDonation(
             @Valid @RequestBody CreateProductDonationRequest request) {
         return donationService.createProductDonation(request);
+    }
+
+    @GetMapping("/pledges")
+    @PreAuthorize("hasAnyRole('ADMIN', 'RH_TESOURARIA')")
+    public List<DonationPledgeResponse> pendingPledges() {
+        return donationGoalService.pendingPledges();
+    }
+
+    @PostMapping("/{id}/receive")
+    @PreAuthorize("hasRole('ADMIN')")
+    public DonationPledgeResponse receivePledge(@PathVariable Long id,
+            @RequestBody(required = false) ReceivePledgeRequest request) {
+        return donationGoalService.receive(id,
+            request != null ? request : new ReceivePledgeRequest(null));
+    }
+
+    @PostMapping("/{id}/reject")
+    @PreAuthorize("hasRole('ADMIN')")
+    public DonationPledgeResponse rejectPledge(@PathVariable Long id) {
+        return donationGoalService.reject(id);
     }
 
     @GetMapping("/configuration")
