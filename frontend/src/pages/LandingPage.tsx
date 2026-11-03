@@ -13,6 +13,9 @@ import FavoriteIcon from '@mui/icons-material/Favorite'
 import InstagramIcon from '@mui/icons-material/Instagram'
 import VolunteerActivismIcon from '@mui/icons-material/VolunteerActivism'
 import donationGoalService, { DonationGoalItem } from '../services/donationGoalService'
+
+// Quantidade de fotos em /galeria (foto-01..foto-NN).
+const GALLERY_COUNT = 22
 import { getApiErrorMessage } from '../utils/apiError'
 
 const navItems = [
@@ -320,7 +323,7 @@ function LandingPage() {
               }}
             />
             <IconButton
-              onClick={() => setGalleryIndex((galleryIndex + 23) % 24)}
+              onClick={() => setGalleryIndex((galleryIndex + GALLERY_COUNT - 1) % GALLERY_COUNT)}
               aria-label="Foto anterior"
               sx={{
                 position: 'absolute', left: 8, top: '50%', transform: 'translateY(-50%)',
@@ -331,7 +334,7 @@ function LandingPage() {
               <ChevronLeftIcon fontSize="large" />
             </IconButton>
             <IconButton
-              onClick={() => setGalleryIndex((galleryIndex + 1) % 24)}
+              onClick={() => setGalleryIndex((galleryIndex + 1) % GALLERY_COUNT)}
               aria-label="Próxima foto"
               sx={{
                 position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)',
@@ -355,7 +358,7 @@ function LandingPage() {
               '&::-webkit-scrollbar-thumb': { bgcolor: '#C9CDD6', borderRadius: 3 },
             }}
           >
-            {Array.from({ length: 24 }, (_, i) => {
+            {Array.from({ length: GALLERY_COUNT }, (_, i) => {
               const src = `/galeria/foto-${String(i + 1).padStart(2, '0')}.jpg`
               const active = i === galleryIndex
               return (
