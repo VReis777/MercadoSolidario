@@ -34,6 +34,7 @@ function RunKitScanPage() {
   const [message, setMessage] = useState('')
   const [scanning, setScanning] = useState(false)
   const [cameraError, setCameraError] = useState(false)
+  const insecureContext = typeof window !== 'undefined' && !window.isSecureContext
   const scannerRef = useRef<Html5Qrcode | null>(null)
 
   const stopScanner = () => {
@@ -49,6 +50,10 @@ function RunKitScanPage() {
     setCameraError(false)
     setScanning(true)
     try {
+      // O div do leitor só é renderizado após scanning=true — espera ele existir.
+      await new Promise((resolve) => setTimeout(resolve, 100))
+      const element = document.getElementById('qr-reader')
+      if (!element) throw new Error('leitor não renderizado')
       const scanner = new Html5Qrcode('qr-reader')
       scannerRef.current = scanner
       await scanner.start(
@@ -126,29 +131,50 @@ function RunKitScanPage() {
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
               Aponte a câmera para o QR do inscrito ou cole/digite o código/link abaixo.
             </Typography>
-            {cameraError && (
+            {(cameraError || insecureContext) && (
               <Card
                 variant="outlined"
-                sx={{ mb: 2, borderColor: 'warning.main', cursor: 'pointer', '&:hover': { bgcolor: 'action.hover' } }}
-                onClick={() => void startScanner()}
+                sx={{
+                  mb: 2, borderColor: 'warning.main',
+                  cursor: insecureContext ? 'default' : 'pointer',
+                  ...(insecureContext ? {} : { '&:hover': { bgcolor: 'action.hover' } }),
+                }}
+                onClick={insecureContext ? undefined : () => void startScanner()}
               >
                 <CardContent>
                   <Typography fontWeight={700} color="warning.dark" gutterBottom>
-                    Câmera bloqueada ou sem permissão
+                    {insecureContext ? 'Câmera não disponível neste acesso' : 'Câmera bloqueada ou sem permissão'}
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
-                    Para liberar, toque no cadeado (ou ícone) ao lado do endereço do site
-                    na barra do navegador → <strong>Permissões</strong> → ative
-                    <strong> Câmera</strong>. No Chrome também dá em
-                    Configurações do site → Câmera → Permitir.
+                    {insecureContext ? (
+                      <>
+                        O navegador só libera câmera em <strong>HTTPS</strong> (acesso seguro).
+                        Neste endereço local (http://...) o leitor não abre — use o campo de
+                        código abaixo ou a câmera nativa do celular apontando para o QR.
+                        Pelo site oficial (https://) o leitor funciona.
+                      </>
+                    ) : (
+                      <>
+                        Para liberar, toque no cadeado (ou ícone) ao lado do endereço do site
+                        na barra do navegador → <strong>Permissões</strong> → ative
+                        <strong> Câmera</strong>. No Chrome também dá em
+                        Configurações do site → Câmera → Permitir.
+                      </>
+                    )}
                   </Typography>
-                  <Typography variant="body2" color="primary" fontWeight={700} sx={{ mt: 1 }}>
-                    Toque aqui para tentar novamente
-                  </Typography>
+                  {!insecureContext && (
+                    <Typography variant="body2" color="primary" fontWeight={700} sx={{ mt: 1 }}>
+                      Toque aqui para tentar novamente
+                    </Typography>
+                  )}
                 </CardContent>
               </Card>
             )}
-            {!scanning ? (
+            {!scanning && insecureContext ? (
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                Use o campo abaixo para verificar pelo código ou link do QR.
+              </Typography>
+            ) : !scanning ? (
               <Button
                 variant="contained" color="secondary" fullWidth
                 startIcon={<QrCodeScannerIcon />}
