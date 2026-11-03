@@ -327,8 +327,9 @@ function LandingPage() {
               aria-label="Foto anterior"
               sx={{
                 position: 'absolute', left: 8, top: '50%', transform: 'translateY(-50%)',
-                bgcolor: 'rgba(255,255,255,0.92)', color: '#1B2A6B',
-                '&:hover': { bgcolor: '#FFFFFF' },
+                bgcolor: 'rgba(255,255,255,0.25)', color: '#7B9CFF',
+                backdropFilter: 'blur(2px)',
+                '&:hover': { bgcolor: 'rgba(255,255,255,0.45)' },
               }}
             >
               <ChevronLeftIcon fontSize="large" />
@@ -338,8 +339,9 @@ function LandingPage() {
               aria-label="Próxima foto"
               sx={{
                 position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)',
-                bgcolor: 'rgba(255,255,255,0.92)', color: '#1B2A6B',
-                '&:hover': { bgcolor: '#FFFFFF' },
+                bgcolor: 'rgba(255,255,255,0.25)', color: '#7B9CFF',
+                backdropFilter: 'blur(2px)',
+                '&:hover': { bgcolor: 'rgba(255,255,255,0.45)' },
               }}
             >
               <ChevronRightIcon fontSize="large" />
