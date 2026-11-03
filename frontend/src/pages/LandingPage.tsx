@@ -308,7 +308,7 @@ function LandingPage() {
             é uma família recebendo dignidade.
           </Typography>
 
-          {/* Foto em destaque + setas */}
+          {/* Foto em destaque + setas — foto-01 é a fixa de abertura */}
           <Box sx={{ position: 'relative', mb: 2 }}>
             <Box
               component="img"
