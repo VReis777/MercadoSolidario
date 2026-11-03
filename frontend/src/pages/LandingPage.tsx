@@ -7,6 +7,8 @@ import {
   TextField, Toolbar, Typography,
 } from '@mui/material'
 import MenuIcon from '@mui/icons-material/Menu'
+import ChevronLeftIcon from '@mui/icons-material/ChevronLeft'
+import ChevronRightIcon from '@mui/icons-material/ChevronRight'
 import FavoriteIcon from '@mui/icons-material/Favorite'
 import InstagramIcon from '@mui/icons-material/Instagram'
 import VolunteerActivismIcon from '@mui/icons-material/VolunteerActivism'
@@ -61,6 +63,7 @@ function fmtPkg(value: number, unit: string): string {
 function LandingPage() {
   const navigate = useNavigate()
   const [menuOpen, setMenuOpen] = useState(false)
+  const [galleryIndex, setGalleryIndex] = useState(0)
   const [goalItems, setGoalItems] = useState<DonationGoalItem[]>([])
   const [donorNames, setDonorNames] = useState<string[]>([])
   const [pledgeItem, setPledgeItem] = useState<DonationGoalItem | null>(null)
@@ -287,6 +290,97 @@ function LandingPage() {
                 Nosso desafio: alcançar 500 famílias.
               </Typography>
             </Paper>
+          </Box>
+        </Container>
+      </Box>
+
+      {/* Galeria — veja como foi o ano anterior */}
+      <Box component="section" sx={{ py: { xs: 7, md: 10 }, bgcolor: '#FFFFFF' }}>
+        <Container maxWidth="md" sx={{ textAlign: 'center' }}>
+          <Typography variant="h4" component="h2" sx={{ color: '#1B2A6B', fontWeight: 800, mb: 2 }}>
+            Veja como foi o ano anterior
+          </Typography>
+          <Typography sx={{ fontSize: '1.05rem', color: '#44506B', mb: 4, maxWidth: 640, mx: 'auto' }}>
+            Momentos de solidariedade que já transformaram vidas — cada entrega
+            é uma família recebendo dignidade.
+          </Typography>
+
+          {/* Foto em destaque + setas */}
+          <Box sx={{ position: 'relative', mb: 2 }}>
+            <Box
+              component="img"
+              src={`/galeria/foto-${String(galleryIndex + 1).padStart(2, '0')}.jpg`}
+              alt="Registro de ação do Mercado Solidário"
+              sx={{
+                width: '100%',
+                maxHeight: { xs: 320, md: 440 },
+                objectFit: 'cover',
+                borderRadius: 3,
+                boxShadow: '0 8px 24px rgba(27,42,107,0.18)',
+              }}
+            />
+            <IconButton
+              onClick={() => setGalleryIndex((galleryIndex + 23) % 24)}
+              aria-label="Foto anterior"
+              sx={{
+                position: 'absolute', left: 8, top: '50%', transform: 'translateY(-50%)',
+                bgcolor: 'rgba(255,255,255,0.92)', color: '#1B2A6B',
+                '&:hover': { bgcolor: '#FFFFFF' },
+              }}
+            >
+              <ChevronLeftIcon fontSize="large" />
+            </IconButton>
+            <IconButton
+              onClick={() => setGalleryIndex((galleryIndex + 1) % 24)}
+              aria-label="Próxima foto"
+              sx={{
+                position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)',
+                bgcolor: 'rgba(255,255,255,0.92)', color: '#1B2A6B',
+                '&:hover': { bgcolor: '#FFFFFF' },
+              }}
+            >
+              <ChevronRightIcon fontSize="large" />
+            </IconButton>
+          </Box>
+
+          {/* Miniaturas clicáveis */}
+          <Box
+            sx={{
+              display: 'flex',
+              gap: 1,
+              overflowX: 'auto',
+              pb: 1,
+              justifyContent: { md: 'center' },
+              '&::-webkit-scrollbar': { height: 6 },
+              '&::-webkit-scrollbar-thumb': { bgcolor: '#C9CDD6', borderRadius: 3 },
+            }}
+          >
+            {Array.from({ length: 24 }, (_, i) => {
+              const src = `/galeria/foto-${String(i + 1).padStart(2, '0')}.jpg`
+              const active = i === galleryIndex
+              return (
+                <Box
+                  key={src}
+                  component="img"
+                  src={src}
+                  alt={`Miniatura ${i + 1}`}
+                  loading="lazy"
+                  onClick={() => setGalleryIndex(i)}
+                  sx={{
+                    width: 64,
+                    height: 64,
+                    objectFit: 'cover',
+                    flexShrink: 0,
+                    borderRadius: 1.5,
+                    cursor: 'pointer',
+                    border: active ? '3px solid #FFC42E' : '2px solid transparent',
+                    opacity: active ? 1 : 0.6,
+                    transition: 'opacity 0.2s',
+                    '&:hover': { opacity: 1 },
+                  }}
+                />
+              )
+            })}
           </Box>
         </Container>
       </Box>
