@@ -229,6 +229,13 @@ function DashboardPage() {
       requiredRoles: ['ROLE_ADMIN'],
     },
     {
+      id: 'run',
+      title: 'Inscritos — Corrida Rum',
+      description: 'Inscrições, pagamentos e vagas da corrida',
+      icon: <LocalShippingIcon />,
+      requiredRoles: ['ROLE_ADMIN', 'ROLE_RH_TESOURARIA'],
+    },
+    {
       id: 'users',
       title: 'Usuários',
       description: 'Cadastrar pessoas e enviar convites de acesso',
@@ -280,6 +287,8 @@ function DashboardPage() {
                 navigate('/relatorios')
               } else if (module.id === 'settings') {
                 navigate('/configuracoes')
+              } else if (module.id === 'run') {
+                navigate('/inscritosrum')
               } else if (module.id === 'users') {
                 navigate('/admin/usuarios')
               }

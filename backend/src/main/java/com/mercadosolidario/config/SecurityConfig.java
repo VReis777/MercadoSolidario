@@ -88,6 +88,16 @@ public class SecurityConfig {
                 .requestMatchers("/api/donations/**")
                     .hasAnyRole("ADMIN", "RH_TESOURARIA")
 
+                // Corrida Rum: lista e confirmação/cancelamento
+                .requestMatchers(HttpMethod.GET, "/api/rum/registrations")
+                    .hasAnyRole("ADMIN", "RH_TESOURARIA")
+                .requestMatchers(HttpMethod.POST,
+                    "/api/rum/registrations/*/confirm-payment",
+                    "/api/rum/registrations/*/cancel")
+                    .hasRole("ADMIN")
+                .requestMatchers("/api/rum/**")
+                    .hasAnyRole("ADMIN", "RH_TESOURARIA")
+
                 // Operational distribution is allowed to ADMIN, RH/Tesouraria and DIACONO.
                 .requestMatchers(HttpMethod.GET, "/api/distributions/**", "/api/families/*/distributions")
                     .hasAnyRole("ADMIN", "RH_TESOURARIA", "DIACONO")
