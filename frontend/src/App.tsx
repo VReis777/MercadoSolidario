@@ -9,7 +9,9 @@ import { RoleGuard } from './auth/RoleGuard'
 import PublicPage from './pages/PublicPage'
 import LandingPage from './pages/LandingPage'
 import RumPage from './pages/RumPage'
+import RunVerifyPage from './pages/RunVerifyPage'
 import RunRegistrationsPage from './pages/RunRegistrationsPage'
+import RunKitScanPage from './pages/RunKitScanPage'
 import LoginPage from './pages/LoginPage'
 import DashboardPage from './pages/DashboardPage'
 import FamiliesPage from './pages/FamiliesPage'
@@ -61,6 +63,7 @@ function AppContent() {
     { legacy: '/reports', path: '/relatorios', element: <ReportsPage />, roles: ['ROLE_ADMIN', 'ROLE_RH_TESOURARIA'] },
     { legacy: '/settings', path: '/configuracoes', element: <SettingsPage />, roles: ['ROLE_ADMIN'] },
     { legacy: '/run-registrations', path: '/inscritosrum', element: <RunRegistrationsPage />, roles: ['ROLE_ADMIN', 'ROLE_RH_TESOURARIA'] },
+    { legacy: '/run-verify', path: '/verificar-rum', element: <RunKitScanPage />, roles: ['ROLE_ADMIN', 'ROLE_RH_TESOURARIA', 'ROLE_DIACONO'] },
     { legacy: '/admin/users', path: '/admin/usuarios', element: <UserManagementPage />, roles: ['ROLE_ADMIN'] },
   ]
 
@@ -71,6 +74,7 @@ function AppContent() {
         <Route path="/" element={<PublicPage />} />
         <Route path="/nossahistoria" element={<LandingPage />} />
         <Route path="/rum" element={<RumPage />} />
+        <Route path="/rum/verificar/:code" element={<RunVerifyPage />} />
         <Route path="/donate" element={<Navigate to="/doacao" replace />} />
         <Route path="/doacao" element={<PublicDonationPage />} />
         {/* Reabre em dezembro: fluxos públicos de pedido de atendimento e cadastro

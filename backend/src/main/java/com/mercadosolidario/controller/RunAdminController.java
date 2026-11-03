@@ -2,6 +2,7 @@ package com.mercadosolidario.controller;
 
 import com.mercadosolidario.dto.run.RunDtos.AdminRunRegistrationResponse;
 import com.mercadosolidario.dto.run.RunDtos.RunStatusResponse;
+import com.mercadosolidario.dto.run.RunDtos.RunVerifyResponse;
 import com.mercadosolidario.service.RunService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -36,5 +37,12 @@ public class RunAdminController {
     @PreAuthorize("hasRole('ADMIN')")
     public RunStatusResponse cancel(@PathVariable Long id) {
         return runService.cancel(id);
+    }
+
+    // Retirada do kit pelo QR — equipe no local (ADMIN, RH ou voluntário).
+    @PostMapping("/kit/{code}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'RH_TESOURARIA', 'DIACONO')")
+    public RunVerifyResponse kitDelivered(@PathVariable String code) {
+        return runService.markKitDelivered(code);
     }
 }

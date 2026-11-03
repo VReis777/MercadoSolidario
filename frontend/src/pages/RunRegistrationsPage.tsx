@@ -123,7 +123,7 @@ function RunRegistrationsPage() {
             <ArrowBackIcon />
           </IconButton>
           <DirectionsRunIcon sx={{ mr: 1 }} />
-          <Typography variant="h6" sx={{ flexGrow: 1 }}>Inscritos — Mercado Solidário Run</Typography>
+          <Typography variant="h6" sx={{ flexGrow: 1 }}>Inscritos — Rum</Typography>
           <ThemeToggle />
         </Toolbar>
       </Box>
@@ -206,6 +206,12 @@ function RunRegistrationsPage() {
                           {new Date(r.createdAt).toLocaleString('pt-BR')}
                           {r.paidAt ? ` · pago em ${new Date(r.paidAt).toLocaleString('pt-BR')}` : ''}
                         </Typography>
+                        {r.kitDeliveredAt && (
+                          <Typography variant="caption" color="success.main" fontWeight={700}>
+                            Kit retirado em {new Date(r.kitDeliveredAt).toLocaleString('pt-BR')}
+                            {r.kitDeliveredBy ? ` — entregue por ${r.kitDeliveredBy}` : ''}
+                          </Typography>
+                        )}
                         {isAdmin && r.status === 'PENDENTE' && (
                           <Stack direction="row" gap={1} sx={{ mt: 1 }}>
                             <Button size="small" variant="contained" color="success"

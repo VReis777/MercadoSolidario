@@ -95,6 +95,8 @@ public class SecurityConfig {
                     "/api/rum/registrations/*/confirm-payment",
                     "/api/rum/registrations/*/cancel")
                     .hasRole("ADMIN")
+                .requestMatchers(HttpMethod.POST, "/api/rum/registrations/kit/*")
+                    .hasAnyRole("ADMIN", "RH_TESOURARIA", "DIACONO")
                 .requestMatchers("/api/rum/**")
                     .hasAnyRole("ADMIN", "RH_TESOURARIA")
 

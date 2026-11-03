@@ -43,6 +43,7 @@ import {
   Refresh as RefreshIcon,
   Assignment as ServiceRequestsIcon,
   PersonAdd as UserManagementIcon,
+  DirectionsRun as DirectionsRunIcon,
   Public as PublicIcon,
 } from '@mui/icons-material'
 import { styled } from '@mui/material/styles'
@@ -230,10 +231,17 @@ function DashboardPage() {
     },
     {
       id: 'run',
-      title: 'Inscritos — Corrida Rum',
+      title: 'Inscritos — Rum',
       description: 'Inscrições, pagamentos e vagas da corrida',
-      icon: <LocalShippingIcon />,
+      icon: <DirectionsRunIcon />,
       requiredRoles: ['ROLE_ADMIN', 'ROLE_RH_TESOURARIA'],
+    },
+    {
+      id: 'run-verify',
+      title: 'Verificar Inscritos Rum',
+      description: 'Escanear QR e registrar retirada do kit',
+      icon: <DirectionsRunIcon />,
+      requiredRoles: ['ROLE_ADMIN', 'ROLE_RH_TESOURARIA', 'ROLE_DIACONO'],
     },
     {
       id: 'users',
@@ -289,6 +297,8 @@ function DashboardPage() {
                 navigate('/configuracoes')
               } else if (module.id === 'run') {
                 navigate('/inscritosrum')
+              } else if (module.id === 'run-verify') {
+                navigate('/verificar-rum')
               } else if (module.id === 'users') {
                 navigate('/admin/usuarios')
               }

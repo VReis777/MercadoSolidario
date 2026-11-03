@@ -62,6 +62,25 @@ public class PixPayloadGenerator {
         }
     }
 
+    /** QR em PNG para anexo de e-mail. */
+    public byte[] generateQrCodePng(String payload) {
+        try {
+            BitMatrix matrix = new MultiFormatWriter().encode(
+                payload,
+                BarcodeFormat.QR_CODE,
+                320,
+                320,
+                Map.of(EncodeHintType.ERROR_CORRECTION, ErrorCorrectionLevel.M)
+            );
+            java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
+            com.google.zxing.client.j2se.MatrixToImageWriter
+                .writeToStream(matrix, "PNG", out);
+            return out.toByteArray();
+        } catch (WriterException | java.io.IOException exception) {
+            throw new IllegalStateException("Não foi possível gerar o QR Code.", exception);
+        }
+    }
+
     private String field(String id, String value) {
         int length = value.getBytes(StandardCharsets.UTF_8).length;
         if (length > 99) {

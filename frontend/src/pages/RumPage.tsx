@@ -269,7 +269,7 @@ function RumPage() {
         >
           <EmojiEventsIcon sx={{ color: '#19B8D2', mr: 1, verticalAlign: 'middle' }} />
           <Typography variant="h6" component="span" sx={{ fontWeight: 800, color: '#1B2A6B' }}>
-            Sua inscrição vira cesta básica.
+            Seus passos alimentam sonhos e transformam realidades.
           </Typography>
           <Typography sx={{ color: '#44506B', mt: 1 }}>
             Toda a arrecadação do Mercado Solidário Run ajuda a alcançar a meta de
@@ -289,10 +289,21 @@ function RumPage() {
         </DialogTitle>
         <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
           {registration && paid ? (
-            <Alert severity="success" icon={<CheckCircleIcon />}>
-              <strong>Inscrição confirmada!</strong> Pagamento aprovado —
-              inscrição nº {registration.id}. Nos vemos no dia 13 de dezembro!
-            </Alert>
+            <>
+              <Alert severity="success" icon={<CheckCircleIcon />}>
+                <strong>Inscrição confirmada!</strong> Pagamento aprovado —
+                inscrição nº {registration.id}. Nos vemos no dia 13 de dezembro!
+              </Alert>
+              {status?.checkinCode && (
+                <Button
+                  variant="contained"
+                  onClick={() => navigate(`/rum/verificar/${status.checkinCode}`)}
+                  sx={{ bgcolor: '#1B2A6B', '&:hover': { bgcolor: '#2E4FA3' }, fontWeight: 700 }}
+                >
+                  Ver meu QR de retirada do kit
+                </Button>
+              )}
+            </>
           ) : registration ? (
             <>
               <Alert severity="info">

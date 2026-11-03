@@ -1,0 +1,24 @@
+{
+  "name": "Mercado Solidário",
+  "short_name": "Mercado Sol.",
+  "description": "Gestão do Mercado Solidário — MEVAM Petrópolis",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#FBF9F1",
+  "theme_color": "#1B2A6B",
+  "icons": [
+    {
+      "src": "/pwa-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/pwa-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

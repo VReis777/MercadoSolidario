@@ -17,6 +17,8 @@ import com.mercadosolidario.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,6 +28,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -50,6 +53,9 @@ public class RunService {
 
     @Value("${app.mail.from:}")
     private String fromAddress;
+
+    @Value("${app.frontend.base-url:http://localhost:5173}")
+    private String frontendBaseUrl;
 
     @Transactional(readOnly = true)
     public RunInfoResponse info() {
@@ -206,6 +212,44 @@ public class RunService {
         return toStatus(registrationRepository.save(registration));
     }
 
+    /** Verificação pública pelo QR: dados do inscrito + status + QR imagem. */
+    @Transactional(readOnly = true)
+    public RunVerifyResponse verify(String code) {
+        RunRegistration registration = registrationRepository.findByCheckinCode(code)
+            .orElseThrow(() -> new ResourceNotFoundException("Código de inscrição inválido."));
+        String qr = pixPayloadGenerator.generateQrCodeDataUri(
+            frontendBaseUrl + "/rum/verificar/" + code);
+        return new RunVerifyResponse(
+            registration.getId(), registration.getFullName(), registration.getModality(),
+            registration.getShirtSize(), registration.getStatus(),
+            registration.getKitDeliveredAt(), registration.getKitDeliveredBy(), qr);
+    }
+
+    private String actor() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        return authentication != null ? authentication.getName() : "sistema";
+    }
+
+    /** Marca a retirada do kit (camisa + medalha) — usado pela equipe no local. */
+    @Transactional
+    public RunVerifyResponse markKitDelivered(String code) {
+        RunRegistration registration = registrationRepository.findByCheckinCode(code)
+            .orElseThrow(() -> new ResourceNotFoundException("Código de inscrição inválido."));
+        if (!"PAGA".equals(registration.getStatus())) {
+            throw new ConflictException("Inscrição não está paga — kit não liberado.");
+        }
+        if (registration.getKitDeliveredAt() != null) {
+            throw new ConflictException("Kit já retirado em "
+                + registration.getKitDeliveredAt() + ".");
+        }
+        registration.setKitDeliveredAt(LocalDateTime.now());
+        registration.setKitDeliveredBy(actor());
+        audit("RUN_KIT_DELIVERED", registration.getId(),
+            "modality=" + registration.getModality() + ",by=" + actor());
+        registrationRepository.save(registration);
+        return verify(code);
+    }
+
     @Transactional(readOnly = true)
     public List<AdminRunRegistrationResponse> listAll() {
         return registrationRepository.findAllByOrderByCreatedAtDesc().stream()
@@ -213,13 +257,17 @@ public class RunService {
                 r.getId(), r.getFullName(), r.getEmail(), r.getPhone(), r.getModality(),
                 r.getShirtSize(), r.getAmount(), r.getExtraDonation(), r.totalCharged(),
                 r.getPaymentMethod(), r.getStatus(),
-                r.getPaidAt(), r.getCreatedAt()))
+                r.getPaidAt(), r.getCreatedAt(),
+                r.getKitDeliveredAt(), r.getKitDeliveredBy()))
             .toList();
     }
 
     private void markPaid(RunRegistration registration) {
         registration.setStatus("PAGA");
         registration.setPaidAt(LocalDateTime.now());
+        if (registration.getCheckinCode() == null) {
+            registration.setCheckinCode(UUID.randomUUID().toString().replace("-", ""));
+        }
         registrationRepository.save(registration);
         audit("RUN_REGISTRATION_PAID", registration.getId(),
             "modality=" + registration.getModality() + ",method=" + registration.getPaymentMethod()
@@ -273,7 +321,9 @@ public class RunService {
                             ? " (ref. " + registration.getPaymentRef() + ")" : ""));
             }
             if (registration.getEmail() != null && !registration.getEmail().isBlank()) {
-                emailSender.sendToMany(new String[]{registration.getEmail()},
+                String verifyUrl = frontendBaseUrl + "/rum/verificar/" + registration.getCheckinCode();
+                byte[] qrPng = pixPayloadGenerator.generateQrCodePng(verifyUrl);
+                emailSender.sendWithAttachment(registration.getEmail(),
                     "Inscrição confirmada - Mercado Solidário Rum",
                     """
                     Olá, %s!
@@ -282,8 +332,17 @@ public class RunService {
                     Obrigado por correr com a gente — sua inscrição se transforma em dignidade.
 
                     Número da inscrição: %d
+                    Camisa: %s
+
+                    Seu QR de retirada do kit (camisa + medalha) vai em ANEXO
+                    neste e-mail — apresente-o na retirada. Se preferir, abra:
+                    %s
                     """.formatted(registration.getFullName(), registration.getModality(),
-                        registration.getId()));
+                        registration.getId(),
+                        registration.getShirtSize() != null ? registration.getShirtSize() : "não informado",
+                        verifyUrl),
+                    "qrcode-inscricao-" + registration.getId() + ".png",
+                    qrPng, "image/png");
             }
         } catch (RuntimeException exception) {
             log.warn("Inscrição paga mas e-mail de confirmação não foi enviado.");
@@ -310,7 +369,8 @@ public class RunService {
 
     private RunStatusResponse toStatus(RunRegistration r) {
         return new RunStatusResponse(r.getId(), r.getFullName(), r.getModality(),
-            r.getShirtSize(), r.getStatus(), r.getAmount(), r.getPaidAt());
+            r.getShirtSize(), r.getStatus(), r.getAmount(), r.getPaidAt(),
+            r.getCheckinCode(), r.getKitDeliveredAt(), r.getKitDeliveredBy());
     }
 
     private void audit(String action, Long entityId, String details) {

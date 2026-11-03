@@ -48,6 +48,17 @@ public class RunDtos {
         LocalDateTime createdAt
     ) {}
 
+    public record RunVerifyResponse(
+        Long id,
+        String fullName,
+        String modality,
+        String shirtSize,
+        String status,
+        LocalDateTime kitDeliveredAt,
+        String kitDeliveredBy,
+        String qrUri
+    ) {}
+
     public record RunStatusResponse(
         Long id,
         String fullName,
@@ -55,7 +66,10 @@ public class RunDtos {
         String shirtSize,
         String status,
         BigDecimal amount,
-        LocalDateTime paidAt
+        LocalDateTime paidAt,
+        String checkinCode,
+        LocalDateTime kitDeliveredAt,
+        String kitDeliveredBy
     ) {}
 
     public record AdminRunRegistrationResponse(
@@ -71,6 +85,8 @@ public class RunDtos {
         String paymentMethod,
         String status,
         LocalDateTime paidAt,
-        LocalDateTime createdAt
+        LocalDateTime createdAt,
+        LocalDateTime kitDeliveredAt,
+        String kitDeliveredBy
     ) {}
 }

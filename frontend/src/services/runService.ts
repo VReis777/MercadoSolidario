@@ -38,6 +38,19 @@ export interface RunStatus {
   status: string
   amount: number
   paidAt: string | null
+  checkinCode: string | null
+  kitDeliveredAt: string | null
+}
+
+export interface RunVerify {
+  id: number
+  fullName: string
+  modality: string
+  shirtSize: string | null
+  status: string
+  kitDeliveredAt: string | null
+  kitDeliveredBy: string | null
+  qrUri: string
 }
 
 export interface AdminRunRegistration {
@@ -54,6 +67,8 @@ export interface AdminRunRegistration {
   status: string
   paidAt: string | null
   createdAt: string
+  kitDeliveredAt: string | null
+  kitDeliveredBy: string | null
 }
 
 const publicApi = axios.create({ baseURL: import.meta.env.VITE_API_URL })
@@ -77,6 +92,14 @@ const runService = {
   },
   status: async (id: number): Promise<RunStatus> => {
     const { data } = await publicApi.get<RunStatus>(`/api/public/rum/registrations/${id}`)
+    return data
+  },
+  verify: async (code: string): Promise<RunVerify> => {
+    const { data } = await publicApi.get<RunVerify>(`/api/public/rum/verify/${code}`)
+    return data
+  },
+  kitDelivered: async (code: string): Promise<RunVerify> => {
+    const { data } = await api.post<RunVerify>(`/rum/registrations/kit/${code}`)
     return data
   },
   listAdmin: async (): Promise<AdminRunRegistration[]> => {

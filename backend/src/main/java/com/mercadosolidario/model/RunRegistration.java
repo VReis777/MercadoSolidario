@@ -59,6 +59,16 @@ public class RunRegistration {
     @Column(name = "paid_at")
     private LocalDateTime paidAt;
 
+    // Código único do QR de verificação (retirada do kit).
+    @Column(name = "checkin_code", length = 40, unique = true)
+    private String checkinCode;
+
+    @Column(name = "kit_delivered_at")
+    private LocalDateTime kitDeliveredAt;
+
+    @Column(name = "kit_delivered_by", length = 160)
+    private String kitDeliveredBy;
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 }

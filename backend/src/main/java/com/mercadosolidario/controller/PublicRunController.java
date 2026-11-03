@@ -4,6 +4,7 @@ import com.mercadosolidario.dto.run.RunDtos.RunInfoResponse;
 import com.mercadosolidario.dto.run.RunDtos.RunRegisterRequest;
 import com.mercadosolidario.dto.run.RunDtos.RunRegistrationResponse;
 import com.mercadosolidario.dto.run.RunDtos.RunStatusResponse;
+import com.mercadosolidario.dto.run.RunDtos.RunVerifyResponse;
 import com.mercadosolidario.service.RunService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -40,6 +41,12 @@ public class PublicRunController {
     @GetMapping("/registrations/{id}")
     public RunStatusResponse status(@PathVariable Long id) {
         return runService.status(id);
+    }
+
+    // Verificação pública pelo QR na retirada do kit.
+    @GetMapping("/verify/{code}")
+    public RunVerifyResponse verify(@PathVariable String code) {
+        return runService.verify(code);
     }
 
     // Webhook do gateway de pagamento (Mercado Pago envia data.id ou ?id&topic).
