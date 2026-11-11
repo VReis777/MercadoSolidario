@@ -120,7 +120,7 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/families/**").hasAnyRole("ADMIN", "RH_TESOURARIA", "DIACONO")
                 .requestMatchers(HttpMethod.POST, "/api/families").hasAnyRole("ADMIN", "RH_TESOURARIA")
                 .requestMatchers(HttpMethod.PUT, "/api/families/**").hasAnyRole("ADMIN", "RH_TESOURARIA")
-                .requestMatchers(HttpMethod.PATCH, "/api/families/**/status").hasAnyRole("ADMIN", "RH_TESOURARIA")
+                .requestMatchers(HttpMethod.PATCH, "/api/families/*/status").hasAnyRole("ADMIN", "RH_TESOURARIA")
                 
                 // Family member endpoints - ADMIN, RH_TESOURARIA, DIACONO can read, ADMIN and RH_TESOURARIA can write
                 .requestMatchers(HttpMethod.GET, "/api/families/*/members/**").hasAnyRole("ADMIN", "RH_TESOURARIA", "DIACONO")
