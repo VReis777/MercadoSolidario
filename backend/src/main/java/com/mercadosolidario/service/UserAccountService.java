@@ -4,6 +4,7 @@ import com.mercadosolidario.dto.auth.CreateUserInvitationRequest;
 import com.mercadosolidario.dto.auth.SetPasswordRequest;
 import com.mercadosolidario.dto.auth.UserInvitationResponse;
 import com.mercadosolidario.exception.ConflictException;
+import com.mercadosolidario.exception.ResourceNotFoundException;
 import com.mercadosolidario.exception.InvitationEmailUnavailableException;
 import com.mercadosolidario.model.PasswordSetupToken;
 import com.mercadosolidario.model.Role;
@@ -58,6 +59,25 @@ public class UserAccountService {
 
     @Value("${app.users.password-link-minutes:30}")
     private int passwordLinkMinutes;
+
+    /** Troca o perfil de uma pessoa (inclusive promover a ADMIN). Só o dono executa. */
+    @Transactional
+    public void changeRole(Long userId, String roleName, String actorUsername) {
+        if (ownerUsername.isBlank()
+                || !ownerUsername.equalsIgnoreCase(actorUsername)) {
+            throw new AccessDeniedException("Somente o administrador responsável pode trocar autoridade.");
+        }
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
+        if (user.getEmail() != null && user.getEmail().equalsIgnoreCase(ownerUsername)) {
+            throw new IllegalArgumentException("O administrador responsável não pode ter o próprio perfil alterado.");
+        }
+        Role role = roleRepository.findByName(roleName)
+                .orElseThrow(() -> new IllegalArgumentException("O perfil solicitado não está disponível."));
+        user.getRoles().clear();
+        user.getRoles().add(role);
+        userRepository.save(user);
+    }
 
     /** Cria o perfil com a senha temporária padrão; a troca é exigida no primeiro login. */
     @Transactional

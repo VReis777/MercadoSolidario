@@ -21,6 +21,10 @@ export const userAccountService = {
     return response.data;
   },
 
+  async updateRole(userId: number, role: 'ADMIN' | 'RH_TESOURARIA' | 'DIACONO'): Promise<void> {
+    await api.patch(`/admin/users/${userId}/role`, { role });
+  },
+
   async setPassword(token: string, newPassword: string): Promise<void> {
     await api.post('/auth/set-password', { token, newPassword });
   },

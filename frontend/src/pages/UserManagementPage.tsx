@@ -35,13 +35,7 @@ import taskService, { type AssignableUser, type StaffTask } from '../services/ta
 import { getApiErrorMessage } from '../utils/apiError';
 import ThemeToggle from '../components/ThemeToggle';
 
-const roleLabel: Record<string, string> = {
-  ADMIN: 'Administração',
-  RH_TESOURARIA: 'RH / Tesouraria',
-  DIACONO: 'Voluntário ADM',
-};
 
-const formatRole = (name: string) => roleLabel[name.replace('ROLE_', '')] ?? name;
 
 function UserManagementPage() {
   const navigate = useNavigate();
@@ -117,6 +111,20 @@ function UserManagementPage() {
       await loadLists();
     } catch (requestError) {
       setError(getApiErrorMessage(requestError, 'Não foi possível atribuir a tarefa.'));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const changePersonRole = async (personId: number, newRole: string) => {
+    setLoading(true);
+    setError('');
+    try {
+      await userAccountService.updateRole(personId, newRole as 'ADMIN' | 'RH_TESOURARIA' | 'DIACONO');
+      setSuccess('Perfil atualizado.');
+      await loadLists();
+    } catch (requestError) {
+      setError(getApiErrorMessage(requestError, 'Não foi possível alterar o perfil.'));
     } finally {
       setLoading(false);
     }
@@ -227,16 +235,29 @@ function UserManagementPage() {
                         <ListItem
                           key={person.id}
                           secondaryAction={
-                            <Tooltip title="Atribuir tarefa">
-                              <IconButton color="primary" onClick={() => setTaskDialog(person)} aria-label={`Atribuir tarefa a ${person.fullName}`}>
-                                <AddTaskIcon />
-                              </IconButton>
-                            </Tooltip>
+                            <Stack direction="row" gap={1} alignItems="center">
+                              <Select
+                                size="small"
+                                value={person.roles[0] ?? 'DIACONO'}
+                                disabled={loading}
+                                onChange={(event) => void changePersonRole(person.id, event.target.value as string)}
+                                sx={{ minWidth: 150 }}
+                              >
+                                <MenuItem value="ADMIN">Administração</MenuItem>
+                                <MenuItem value="RH_TESOURARIA">RH / Tesouraria</MenuItem>
+                                <MenuItem value="DIACONO">Voluntário ADM</MenuItem>
+                              </Select>
+                              <Tooltip title="Atribuir tarefa">
+                                <IconButton color="primary" onClick={() => setTaskDialog(person)} aria-label={`Atribuir tarefa a ${person.fullName}`}>
+                                  <AddTaskIcon />
+                                </IconButton>
+                              </Tooltip>
+                            </Stack>
                           }
                         >
                           <ListItemText
                             primary={person.fullName}
-                            secondary={`${person.email} · ${person.roles.map(formatRole).join(', ')}`}
+                            secondary={person.email}
                           />
                         </ListItem>
                       ))}
