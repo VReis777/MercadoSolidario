@@ -11,5 +11,7 @@ public record PublicDonationResponse(
     String pixStatus,
     String pixPayload,
     String qrCodeDataUri,
+    String checkoutUrl,
+    String paymentMethod,
     String message
 ) {}

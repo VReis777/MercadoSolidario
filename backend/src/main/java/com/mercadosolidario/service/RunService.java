@@ -50,6 +50,7 @@ public class RunService {
     private final InvitationEmailSender emailSender;
     private final RunPaymentGateway paymentGateway;
     private final PixPayloadGenerator pixPayloadGenerator;
+    private final DonationService donationService;
 
     @Value("${app.mail.from:}")
     private String fromAddress;
@@ -104,6 +105,7 @@ public class RunService {
         }
         registration.setPaymentMethod(method);
         registration.setStatus("PENDENTE");
+        registration.setAccessKey(UUID.randomUUID().toString().replace("-", ""));
         RunRegistration saved = registrationRepository.save(registration);
         audit("RUN_REGISTRATION_CREATED", saved.getId(),
             "modality=" + modality + ",method=" + method);
@@ -133,7 +135,7 @@ public class RunService {
             }
         }
         return new RunRegistrationResponse(
-            saved.getId(), modality, saved.getAmount(), saved.getExtraDonation(),
+            saved.getId(), saved.getAccessKey(), modality, saved.getAmount(), saved.getExtraDonation(),
             saved.totalCharged(), saved.getStatus(),
             method, pixCode, pixQrUri, checkoutUrl, saved.getCreatedAt());
     }
@@ -157,9 +159,14 @@ public class RunService {
     }
 
     @Transactional(readOnly = true)
-    public RunStatusResponse status(Long id) {
+    public RunStatusResponse status(Long id, String key) {
         RunRegistration registration = registrationRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Inscrição não encontrada"));
+        // Sem a chave correta a inscrição "não existe": impede enumeração por id.
+        if (key == null || registration.getAccessKey() == null
+                || !registration.getAccessKey().equals(key)) {
+            throw new ResourceNotFoundException("Inscrição não encontrada");
+        }
         return toStatus(registration);
     }
 
@@ -173,6 +180,15 @@ public class RunService {
             return;
         }
         paymentGateway.approvedExternalReference(paymentId).ifPresent(externalRef -> {
+            // Doações avulsas usam external_reference "DON-<id>".
+            if (externalRef != null && externalRef.startsWith("DON-")) {
+                try {
+                    donationService.confirmCardPayment(Long.valueOf(externalRef.substring(4)));
+                } catch (NumberFormatException ignored) {
+                    // referência inesperada — ignora.
+                }
+                return;
+            }
             try {
                 Long registrationId = Long.valueOf(externalRef);
                 registrationRepository.findByIdForUpdate(registrationId)

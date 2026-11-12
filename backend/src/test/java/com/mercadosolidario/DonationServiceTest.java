@@ -50,6 +50,7 @@ class DonationServiceTest {
     @Mock private AuditLogRepository auditLogRepository;
     @Mock private UserRepository userRepository;
     @Mock private StockService stockService;
+    @Mock private com.mercadosolidario.service.RunPaymentGateway paymentGateway;
 
     private DonationService service;
 
@@ -58,7 +59,7 @@ class DonationServiceTest {
         service = new DonationService(
             donationRepository, productRepository, settingRepository, auditLogRepository,
             userRepository, stockService, new PixPayloadGenerator(),
-            new DonationProperties(new BigDecimal("100000.00"))
+            new DonationProperties(new BigDecimal("100000.00")), paymentGateway
         );
         SecurityContextHolder.getContext().setAuthentication(
             new UsernamePasswordAuthenticationToken("admin-test", "N/A", List.of()));

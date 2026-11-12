@@ -63,6 +63,10 @@ public class RunRegistration {
     @Column(name = "checkin_code", length = 40, unique = true)
     private String checkinCode;
 
+    // Segredo do inscrito para consultar o próprio status (anti-enumeração).
+    @Column(name = "access_key", length = 40, unique = true)
+    private String accessKey;
+
     @Column(name = "kit_delivered_at")
     private LocalDateTime kitDeliveredAt;
 

@@ -44,10 +44,15 @@ public class DonationService {
     private final StockService stockService;
     private final PixPayloadGenerator pixPayloadGenerator;
     private final DonationProperties donationProperties;
+    private final RunPaymentGateway paymentGateway;
 
     @Transactional
     public PublicDonationResponse createFinancial(CreateFinancialDonationRequest request) {
         validateFinancialAmount(request.getAmount());
+        String method = request.getPaymentMethod() == null ? "PIX" : request.getPaymentMethod().trim().toUpperCase();
+        if (method.equals("CARTAO") && !paymentGateway.isEnabled()) {
+            throw new IllegalArgumentException("Pagamento em cartão estará disponível em breve — use PIX.");
+        }
         Optional<Donation> duplicate = donationRepository.findByExternalReference(request.getExternalReference());
         if (duplicate.isPresent()) {
             Donation existing = duplicate.get();
@@ -66,13 +71,30 @@ public class DonationService {
         donation.setIsAnonymous(request.isAnonymous());
         donation.setDonorName(request.isAnonymous() ? null : trimToNull(request.getDonorName()));
         donation.setStatus(DonationStatus.AGUARDANDO_PAGAMENTO);
-        donation.setPaymentMethod("PIX");
+        donation.setPaymentMethod(method);
         donation.setExternalReference(request.getExternalReference().trim());
         Donation saved = donationRepository.save(donation);
         audit("FINANCIAL_DONATION_PENDING", saved.getId(),
             "type=FINANCEIRA,amount=" + saved.getAmount().toPlainString()
-                + ",anonymous=" + Boolean.TRUE.equals(saved.getIsAnonymous()), null);
+                + ",anonymous=" + Boolean.TRUE.equals(saved.getIsAnonymous())
+                + ",method=" + method, null);
         return toPublicResponse(saved);
+    }
+
+    /** Confirmação via webhook do gateway (cartão): seguro contra duplicidade. */
+    @Transactional
+    public void confirmCardPayment(Long donationId) {
+        Donation donation = donationRepository.findById(donationId).orElse(null);
+        if (donation == null || donation.getType() != DonationType.FINANCEIRA
+                || donation.getStatus() != DonationStatus.AGUARDANDO_PAGAMENTO) {
+            return;
+        }
+        donation.setStatus(DonationStatus.PAGA);
+        donation.setConfirmationDate(LocalDateTime.now());
+        donation.setConfirmedBy("Mercado Pago");
+        donationRepository.save(donation);
+        audit("DONATION_CARD_CONFIRMED", donation.getId(),
+            "type=FINANCEIRA,method=CARTAO,status=PAGA", "Mercado Pago");
     }
 
     @Transactional
@@ -248,10 +270,28 @@ public class DonationService {
 
     private PublicDonationResponse toPublicResponse(Donation donation) {
         Optional<PixData> pix = pixData();
+        if ("CARTAO".equals(donation.getPaymentMethod())) {
+            Optional<RunPaymentGateway.Charge> charge = paymentGateway.createDonationCardCheckout(
+                donation.getId(), donation.getAmount(), donation.getDonorName());
+            if (charge.isEmpty() || charge.get().checkoutUrl() == null) {
+                return new PublicDonationResponse(
+                    donation.getId(), donation.getAmount(), donation.getStatus(),
+                    "CHECKOUT_INDISPONIVEL", null, null, null, "CARTAO",
+                    "Sua doação está registrada. O checkout de cartão não está disponível agora; tente novamente ou use PIX."
+                );
+            }
+            return new PublicDonationResponse(
+                donation.getId(), donation.getAmount(), donation.getStatus(),
+                "CHECKOUT_GERADO_NAO_CONFIRMADO", null, null, charge.get().checkoutUrl(), "CARTAO",
+                donation.getAmount().compareTo(new BigDecimal("250")) >= 0
+                    ? "Você será levado ao pagamento em cartão (até 2x neste valor)."
+                    : "Você será levado ao pagamento em cartão à vista."
+            );
+        }
         if (pix.isEmpty()) {
             return new PublicDonationResponse(
                 donation.getId(), donation.getAmount(), donation.getStatus(),
-                "PIX_NAO_CONFIGURADO", null, null,
+                "PIX_NAO_CONFIGURADO", null, null, null, "PIX",
                 "Sua doação está aguardando pagamento. A chave PIX ainda não foi configurada pelos responsáveis."
             );
         }
@@ -261,7 +301,7 @@ public class DonationService {
         String qrCode = pixPayloadGenerator.generateQrCodeDataUri(payload);
         return new PublicDonationResponse(
             donation.getId(), donation.getAmount(), donation.getStatus(),
-            "QR_CODE_GERADO_NAO_CONFIRMADO", payload, qrCode,
+            "QR_CODE_GERADO_NAO_CONFIRMADO", payload, qrCode, null, "PIX",
             "O código PIX foi gerado. Gerar o código não confirma o pagamento; a equipe responsável poderá validar o recebimento."
         );
     }

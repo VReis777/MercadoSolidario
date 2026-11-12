@@ -36,6 +36,7 @@ public class RunDtos {
 
     public record RunRegistrationResponse(
         Long id,
+        String accessKey,
         String modality,
         BigDecimal amount,
         BigDecimal extraDonation,

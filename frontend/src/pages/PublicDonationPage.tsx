@@ -21,6 +21,7 @@ function PublicDonationPage() {
   const [amount, setAmount] = useState('20.00')
   const [donorName, setDonorName] = useState('')
   const [anonymous, setAnonymous] = useState(false)
+  const [paymentMethod, setPaymentMethod] = useState<'PIX' | 'CARTAO'>('PIX')
   const [requestReference, setRequestReference] = useState(() => newRequestReference())
   const [result, setResult] = useState<PublicDonationResult | null>(null)
   const [error, setError] = useState('')
@@ -44,6 +45,7 @@ function PublicDonationPage() {
         amount: Number(amount),
         donorName: anonymous ? undefined : donorName.trim() || undefined,
         anonymous,
+        paymentMethod,
         externalReference: requestReference,
       })
       setResult(response)
@@ -132,6 +134,32 @@ function PublicDonationPage() {
                     <Checkbox checked={anonymous} onChange={(event) => setAnonymous(event.target.checked)} />
                     <Typography>Quero doar anonimamente</Typography>
                   </Box>
+                  <Box>
+                    <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1 }}>
+                      Forma de pagamento
+                    </Typography>
+                    <Stack direction="row" gap={1}>
+                      <Button
+                        type="button"
+                        variant={paymentMethod === 'PIX' ? 'contained' : 'outlined'}
+                        onClick={() => setPaymentMethod('PIX')}
+                      >
+                        PIX
+                      </Button>
+                      <Button
+                        type="button"
+                        variant={paymentMethod === 'CARTAO' ? 'contained' : 'outlined'}
+                        onClick={() => setPaymentMethod('CARTAO')}
+                      >
+                        Cartão de crédito
+                      </Button>
+                    </Stack>
+                    {paymentMethod === 'CARTAO' && (
+                      <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 0.5 }}>
+                        À vista. Doações a partir de R$ 250 podem parcelar em até 2x.
+                      </Typography>
+                    )}
+                  </Box>
                   <Button type="submit" variant="contained" size="large" disabled={saving}>
                     {saving ? 'Registrando...' : 'Continuar'}
                   </Button>
@@ -169,6 +197,16 @@ function PublicDonationPage() {
                     onFocus={(event) => event.target.select()}
                   />
                 )}
+                {result.checkoutUrl && (
+                  <Button
+                    variant="contained"
+                    size="large"
+                    onClick={() => { window.location.href = result.checkoutUrl as string }}
+                  >
+                    Ir para o pagamento em cartão
+                  </Button>
+                )}
+                {result.paymentMethod !== 'CARTAO' && (
                 <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
                   <Button variant="outlined" onClick={async () => {
                     try {
@@ -181,6 +219,7 @@ function PublicDonationPage() {
                     {copied === 'key' ? 'Chave PIX copiada!' : 'Copiar chave PIX (e-mail)'}
                   </Button>
                 </Stack>
+                )}
                 {result.pixPayload && (
                   <Button onClick={async () => {
                     if (!navigator.clipboard) {
@@ -204,7 +243,9 @@ function PublicDonationPage() {
                 )}
                 {error && <Alert severity="warning">{error}</Alert>}
                 <Typography variant="body2" color="text.secondary">
-                  Após realizar o pagamento, a confirmação poderá depender de validação da equipe responsável. A geração do código não significa que o pagamento foi recebido.
+                  {result.paymentMethod === 'CARTAO'
+                    ? 'O pagamento em cartão é confirmado automaticamente pelo Mercado Pago em alguns instantes.'
+                    : 'Após realizar o pagamento, a confirmação poderá depender de validação da equipe responsável. A geração do código não significa que o pagamento foi recebido.'}
                 </Typography>
                 <Button variant="outlined" onClick={startNewDonation}>Registrar outra doação</Button>
               </Stack>

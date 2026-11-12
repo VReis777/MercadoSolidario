@@ -85,6 +85,8 @@ public class MercadoPagoGateway implements RunPaymentGateway {
                     "unit_price", registration.totalCharged())),
                 "external_reference", registration.getId().toString(),
                 "notification_url", notificationUrl,
+                // Corrida: cartão somente à vista.
+                "payment_methods", Map.of("installments", 1),
                 "back_urls", Map.of(
                     "success", inscriptionUrl,
                     "failure", inscriptionUrl,
@@ -99,6 +101,41 @@ public class MercadoPagoGateway implements RunPaymentGateway {
             return Optional.of(new Charge(ref, null, url));
         } catch (Exception exception) {
             log.warn("Mercado Pago: falha ao criar checkout de cartão.");
+            return Optional.empty();
+        }
+    }
+
+    @Override
+    public Optional<Charge> createDonationCardCheckout(Long donationId, BigDecimal amount, String payerName) {
+        try {
+            String donationUrl = frontendBaseUrl + "/doacao";
+            // Doações a partir de R$250 podem parcelar em até 2x.
+            int installments = amount.compareTo(new BigDecimal("250")) >= 0 ? 2 : 1;
+            String body = mapper.writeValueAsString(Map.of(
+                "items", java.util.List.of(Map.of(
+                    "title", "Doação Mercado Solidário",
+                    "quantity", 1,
+                    "currency_id", "BRL",
+                    "unit_price", amount)),
+                "external_reference", "DON-" + donationId,
+                "notification_url", notificationUrl,
+                "payment_methods", Map.of("installments", installments),
+                "payer", Map.of(
+                    "name", payerName != null && !payerName.isBlank() ? payerName : "Doador"),
+                "back_urls", Map.of(
+                    "success", donationUrl,
+                    "failure", donationUrl,
+                    "pending", donationUrl),
+                "auto_return", "approved"));
+            JsonNode response = post("/checkout/preferences", body);
+            String ref = response.path("id").asText(null);
+            String url = response.path("init_point").asText(null);
+            if (ref == null || url == null) {
+                return Optional.empty();
+            }
+            return Optional.of(new Charge(ref, null, url));
+        } catch (Exception exception) {
+            log.warn("Mercado Pago: falha ao criar checkout de doação.");
             return Optional.empty();
         }
     }

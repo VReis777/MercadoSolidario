@@ -59,8 +59,8 @@ public class SecurityConfig {
                 .requestMatchers("/api/public/**").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/donations").permitAll()
                 
-                // Swagger (development only)
-                .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html").permitAll()
+                // Swagger: escondido atrás de login ADMIN (não expor o mapa da API)
+                .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html").hasRole("ADMIN")
                 
                 // Protected endpoints - require authentication (excluding login/logout)
                 .requestMatchers("/api/auth/me").authenticated()

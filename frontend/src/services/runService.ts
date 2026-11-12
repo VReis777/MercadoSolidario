@@ -18,6 +18,7 @@ export interface RunInfo {
 
 export interface RunRegistration {
   id: number
+  accessKey: string
   modality: string
   amount: number
   extraDonation: number | null
@@ -90,8 +91,8 @@ const runService = {
     const { data } = await publicApi.post<RunRegistration>('/api/public/rum/registrations', request)
     return data
   },
-  status: async (id: number): Promise<RunStatus> => {
-    const { data } = await publicApi.get<RunStatus>(`/api/public/rum/registrations/${id}`)
+  status: async (id: number, accessKey: string): Promise<RunStatus> => {
+    const { data } = await publicApi.get<RunStatus>(`/api/public/rum/registrations/${id}?key=${accessKey}`)
     return data
   },
   verify: async (code: string): Promise<RunVerify> => {

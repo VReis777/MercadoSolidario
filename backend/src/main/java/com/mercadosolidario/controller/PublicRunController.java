@@ -39,8 +39,9 @@ public class PublicRunController {
     }
 
     @GetMapping("/registrations/{id}")
-    public RunStatusResponse status(@PathVariable Long id) {
-        return runService.status(id);
+    public RunStatusResponse status(@PathVariable Long id,
+                                    @RequestParam(required = false) String key) {
+        return runService.status(id, key);
     }
 
     // Verificação pública pelo QR na retirada do kit.

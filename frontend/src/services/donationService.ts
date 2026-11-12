@@ -30,9 +30,11 @@ export interface PublicDonationResult {
   id: number
   amount: number
   status: DonationStatus
-  pixStatus: 'PIX_NAO_CONFIGURADO' | 'QR_CODE_GERADO_NAO_CONFIRMADO'
+  pixStatus: 'PIX_NAO_CONFIGURADO' | 'QR_CODE_GERADO_NAO_CONFIRMADO' | 'CHECKOUT_GERADO_NAO_CONFIRMADO' | 'CHECKOUT_INDISPONIVEL'
   pixPayload: string | null
   qrCodeDataUri: string | null
+  checkoutUrl: string | null
+  paymentMethod: 'PIX' | 'CARTAO'
   message: string
 }
 
@@ -48,6 +50,7 @@ const donationService = {
     amount: number
     donorName?: string
     anonymous: boolean
+    paymentMethod?: 'PIX' | 'CARTAO'
     externalReference: string
   }): Promise<PublicDonationResult> => {
     const response = await api.post<PublicDonationResult>('/donations', request)

@@ -55,7 +55,7 @@ function RumPage() {
     if (!registration || status?.status === 'PAGA') return
     const timer = setInterval(async () => {
       try {
-        setStatus(await runService.status(registration.id))
+        setStatus(await runService.status(registration.id, registration.accessKey))
       } catch { /* tenta de novo no próximo ciclo */ }
     }, 5000)
     return () => clearInterval(timer)

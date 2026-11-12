@@ -35,7 +35,7 @@ class DonationAuthorizationTest {
     void unauthenticatedUserCanCreatePendingFinancialDonation() throws Exception {
         when(donationService.createFinancial(any())).thenReturn(
             new PublicDonationResponse(1L, new BigDecimal("10.00"), DonationStatus.AGUARDANDO_PAGAMENTO,
-                "PIX_NAO_CONFIGURADO", null, null, "Aguardando pagamento"));
+                "PIX_NAO_CONFIGURADO", null, null, null, "PIX", "Aguardando pagamento"));
         CreateFinancialDonationRequest request = new CreateFinancialDonationRequest();
         request.setAmount(new BigDecimal("10.00"));
         request.setAnonymous(true);
