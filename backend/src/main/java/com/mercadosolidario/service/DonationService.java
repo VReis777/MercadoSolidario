@@ -161,6 +161,21 @@ public class DonationService {
         return toResponse(requireDonation(id));
     }
 
+    /** Remove do histórico doações não aprovadas (pendente/cancelada/expirada). */
+    @Transactional
+    public void delete(Long id) {
+        Donation donation = requireDonationForUpdate(id);
+        if (donation.getStatus() == DonationStatus.PAGA
+                || donation.getStatus() == DonationStatus.CONFIRMADA_MANUALMENTE) {
+            throw new ConflictException("Doações aprovadas não podem ser excluídas.");
+        }
+        donationRepository.delete(donation);
+        audit("DONATION_DELETED", donation.getId(),
+            "type=" + donation.getType() + ",status=" + donation.getStatus()
+                + ",amount=" + (donation.getAmount() != null ? donation.getAmount().toPlainString() : "-"),
+            actor());
+    }
+
     @Transactional
     public DonationResponse confirmManually(Long id) {
         Donation donation = requireDonationForUpdate(id);
@@ -287,6 +302,20 @@ public class DonationService {
                     ? "Você será levado ao pagamento em cartão (até 2x neste valor)."
                     : "Você será levado ao pagamento em cartão à vista."
             );
+        }
+        // PIX via Mercado Pago: confirmação automática pelo webhook (entra na soma sozinho).
+        if (paymentGateway.isEnabled()) {
+            Optional<RunPaymentGateway.Charge> charge = paymentGateway.createDonationPixCharge(
+                donation.getId(), donation.getAmount(), donation.getDonorName());
+            if (charge.isPresent() && charge.get().pixCode() != null) {
+                String payload = charge.get().pixCode();
+                return new PublicDonationResponse(
+                    donation.getId(), donation.getAmount(), donation.getStatus(),
+                    "QR_CODE_GERADO_NAO_CONFIRMADO", payload,
+                    pixPayloadGenerator.generateQrCodeDataUri(payload), null, "PIX",
+                    "PIX gerado pelo Mercado Pago: o pagamento é confirmado automaticamente em instantes."
+                );
+            }
         }
         if (pix.isEmpty()) {
             return new PublicDonationResponse(

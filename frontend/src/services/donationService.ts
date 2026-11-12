@@ -89,6 +89,10 @@ const donationService = {
     return response.data
   },
 
+  remove: async (id: number): Promise<void> => {
+    await api.delete(`/donations/${id}`)
+  },
+
   getPixConfiguration: async (): Promise<PixConfiguration> => {
     const response = await api.get<PixConfiguration>('/donations/configuration')
     return response.data

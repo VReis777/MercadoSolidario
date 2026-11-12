@@ -24,6 +24,9 @@ public interface RunPaymentGateway {
     /** Cartão para doação avulsa: external_reference "DON-<id>"; até 2x a partir de R$250. */
     Optional<Charge> createDonationCardCheckout(Long donationId, BigDecimal amount, String payerName);
 
+    /** PIX para doação avulsa: external_reference "DON-<id>"; confirmação automática via webhook. */
+    Optional<Charge> createDonationPixCharge(Long donationId, BigDecimal amount, String payerName);
+
     /**
      * Se o pagamento estiver aprovado, retorna a external_reference
      * (id da inscrição) enviada na criação da cobrança.

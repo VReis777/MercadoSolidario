@@ -83,6 +83,8 @@ public class SecurityConfig {
                     "/api/donations/*/receive",
                     "/api/donations/*/reject")
                     .hasRole("ADMIN")
+                .requestMatchers(HttpMethod.DELETE, "/api/donations/*")
+                    .hasRole("ADMIN")
                 .requestMatchers(HttpMethod.POST, "/api/donations/products")
                     .hasAnyRole("ADMIN", "RH_TESOURARIA")
                 .requestMatchers("/api/donations/**")

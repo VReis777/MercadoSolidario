@@ -45,7 +45,7 @@ const statusLabel: Record<DonationStatus, string> = {
   CONFIRMADA_MANUALMENTE: 'Confirmada manualmente',
 }
 
-type ConfirmationAction = 'confirm' | 'cancel' | 'expire'
+type ConfirmationAction = 'confirm' | 'cancel' | 'expire' | 'delete'
 
 function DonationsPage() {
   const navigate = useNavigate()
@@ -168,7 +168,8 @@ function DonationsPage() {
       if (action.type === 'confirm') await donationService.confirmManually(action.donation.id)
       if (action.type === 'cancel') await donationService.cancel(action.donation.id)
       if (action.type === 'expire') await donationService.expire(action.donation.id)
-      const actionLabel = action.type === 'confirm' ? 'confirmação manual registrada' : action.type === 'cancel' ? 'doação cancelada' : 'doação expirada'
+      if (action.type === 'delete') await donationService.remove(action.donation.id)
+      const actionLabel = action.type === 'confirm' ? 'confirmação manual registrada' : action.type === 'cancel' ? 'doação cancelada' : action.type === 'delete' ? 'doação excluída do histórico' : 'doação expirada'
       setMessage(`${actionLabel}. O código PIX, por si só, não é prova de pagamento.`)
       setAction(null)
       await loadData()
@@ -474,6 +475,11 @@ function DonationsPage() {
                         <Button size="small" onClick={() => setAction({ donation, type: 'expire' })}>Expirar</Button>
                       </Stack>
                     )}
+                    {isAdmin && ['AGUARDANDO_PAGAMENTO', 'CANCELADA', 'EXPIRADA'].includes(donation.status) && (
+                      <Button size="small" color="error" sx={{ mt: 1 }} onClick={() => setAction({ donation, type: 'delete' })}>
+                        Excluir do histórico
+                      </Button>
+                    )}
                   </CardContent>
                 </Card>
               </Grid>
@@ -541,13 +547,15 @@ function DonationsPage() {
 
       <Dialog open={Boolean(action)} onClose={() => !saving && setAction(null)} fullWidth maxWidth="xs" fullScreen={isMobile}>
         <DialogTitle>
-          {action?.type === 'confirm' ? 'Confirmar manualmente?' : action?.type === 'cancel' ? 'Cancelar doação?' : 'Expirar doação?'}
+          {action?.type === 'confirm' ? 'Confirmar manualmente?' : action?.type === 'cancel' ? 'Cancelar doação?' : action?.type === 'delete' ? 'Excluir doação do histórico?' : 'Expirar doação?'}
         </DialogTitle>
         <DialogContent>
           <Typography>
             {action?.type === 'confirm'
               ? 'Confirme somente após verificar o recebimento por um canal externo. Esta ação registra confirmação manual, não confirmação bancária automática.'
-              : 'A alteração será auditada e não poderá ser desfeita por esta tela.'}
+              : action?.type === 'delete'
+                ? 'A doação será removida permanentemente do histórico. Somente doações não aprovadas podem ser excluídas.'
+                : 'A alteração será auditada e não poderá ser desfeita por esta tela.'}
           </Typography>
         </DialogContent>
         <DialogActions>

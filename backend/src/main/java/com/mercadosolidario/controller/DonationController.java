@@ -5,6 +5,7 @@ import com.mercadosolidario.service.DonationGoalService;
 import com.mercadosolidario.service.DonationService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
@@ -51,6 +52,13 @@ public class DonationController {
     @PreAuthorize("hasRole('ADMIN')")
     public DonationResponse expire(@PathVariable Long id) {
         return donationService.expire(id);
+    }
+
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void delete(@PathVariable Long id) {
+        donationService.delete(id);
     }
 
     @PostMapping("/products")

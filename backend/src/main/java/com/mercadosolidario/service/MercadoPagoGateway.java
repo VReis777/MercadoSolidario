@@ -141,6 +141,32 @@ public class MercadoPagoGateway implements RunPaymentGateway {
     }
 
     @Override
+    public Optional<Charge> createDonationPixCharge(Long donationId, BigDecimal amount, String payerName) {
+        try {
+            String body = mapper.writeValueAsString(Map.of(
+                "transaction_amount", amount,
+                "description", "Doação Mercado Solidário",
+                "payment_method_id", "pix",
+                "external_reference", "DON-" + donationId,
+                "notification_url", notificationUrl,
+                "payer", Map.of(
+                    "email", "doacao@mercadosolidario.org",
+                    "first_name", payerName != null && !payerName.isBlank() ? payerName : "Doador")));
+            JsonNode response = post("/v1/payments", body);
+            String ref = response.path("id").asText(null);
+            String qr = response.path("point_of_interaction")
+                .path("transaction_data").path("qr_code").asText(null);
+            if (ref == null || qr == null) {
+                return Optional.empty();
+            }
+            return Optional.of(new Charge(ref, qr, null));
+        } catch (Exception exception) {
+            log.warn("Mercado Pago: falha ao gerar cobrança PIX de doação.");
+            return Optional.empty();
+        }
+    }
+
+    @Override
     public Optional<String> approvedExternalReference(String paymentRef) {
         try {
             HttpRequest request = HttpRequest.newBuilder()
