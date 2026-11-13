@@ -750,9 +750,6 @@ function LandingPage() {
             <Link component="button" color="inherit" underline="hover" onClick={() => goTo('inicio')}>
               Voltar ao início
             </Link>
-            <Link component="button" color="inherit" underline="hover" onClick={() => navigate('/conheca')}>
-              Conheça um pouco
-            </Link>
             <Link component="button" color="inherit" underline="hover" onClick={() => navigate('/doacao')}>
               DOE AQUI
             </Link>
