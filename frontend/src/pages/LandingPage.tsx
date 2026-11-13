@@ -274,7 +274,6 @@ function LandingPage() {
             >
               Conheça nossa história
             </Button>
-            {/* Botão "Conheça um pouco" -> /conheca só entra após aprovação do Pastor
             <Button
               variant="outlined"
               size="large"
@@ -289,7 +288,6 @@ function LandingPage() {
             >
               Conheça um pouco
             </Button>
-            */}
             <Paper
               elevation={0}
               sx={{
