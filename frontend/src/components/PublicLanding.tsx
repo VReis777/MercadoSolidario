@@ -136,15 +136,18 @@ function PublicLanding({ onPrimaryAction, onBenefitRequest, extraActions }: Publ
               SOU EMPRESA
             </Button>
             <Button
-              variant="outlined"
+              variant="contained"
               size="large"
               startIcon={<VolunteerActivismIcon />}
               onClick={() => handleAction('story')}
               sx={{
                 minWidth: { xs: '100%', sm: 220 },
-                color: 'white',
-                borderColor: 'white',
-                '&:hover': { borderColor: 'white', bgcolor: 'rgba(255,255,255,0.08)' },
+                bgcolor: '#FFC42E',
+                color: '#1B2A6B',
+                fontWeight: 800,
+                boxShadow: '0 4px 14px rgba(0,0,0,0.35)',
+                '&:hover': { bgcolor: '#ffd35c', transform: 'translateY(-1px)' },
+                transition: 'all 0.15s ease',
               }}
             >
               CONHEÇA UM POUCO
