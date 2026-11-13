@@ -75,11 +75,13 @@ function ReportsPage() {
             </Grid>
             <Grid item xs={12} md={4}>
               <Card><CardContent>
-                <Typography variant="h6" gutterBottom>Doações em {overview.campaignYear}</Typography>
+                <Typography variant="h6" gutterBottom>Arrecadação em {overview.campaignYear}</Typography>
                 {summary.donations ? (
                   <>
                     <Typography variant="h4" color="primary.main" fontWeight={700}>
-                      {currency.format(summary.donations.confirmedFinancialAmount)}
+                      {currency.format(
+                        summary.donations.confirmedFinancialAmount + (summary.cash?.entries ?? 0)
+                      )}
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
                       {summary.donations.created} doações criadas · {summary.donations.awaitingPayment} aguardando
@@ -88,6 +90,12 @@ function ReportsPage() {
                       <>
                         <Divider sx={{ my: 1 }} />
                         <Stack spacing={0.5}>
+                          <Stack direction="row" justifyContent="space-between">
+                            <Typography variant="body2">Doações confirmadas</Typography>
+                            <Typography variant="body2" fontWeight={600}>
+                              {currency.format(summary.donations.confirmedFinancialAmount)}
+                            </Typography>
+                          </Stack>
                           <Stack direction="row" justifyContent="space-between">
                             <Typography variant="body2">Entradas no caixa</Typography>
                             <Typography variant="body2" fontWeight={600} color="success.main">
@@ -101,7 +109,7 @@ function ReportsPage() {
                             </Typography>
                           </Stack>
                           <Typography variant="caption" color="text.secondary">
-                            {summary.cash.movements} movimentação(ões) manual(is) — inclui doações registradas direto no caixa
+                            {summary.cash.movements} movimentação(ões) manual(is) no ano — inclui doações registradas direto no caixa
                           </Typography>
                         </Stack>
                       </>
