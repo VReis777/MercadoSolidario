@@ -260,20 +260,36 @@ function LandingPage() {
             às famílias de Petrópolis.
           </Typography>
           <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
-            <Button
-              variant="contained"
-              size="large"
-              onClick={() => scrollToSection('historia')}
-              sx={{
-                bgcolor: '#FFC42E',
-                color: '#1B2A6B',
-                fontWeight: 700,
-                px: 4,
-                '&:hover': { bgcolor: '#ffd35c' },
-              }}
-            >
-              Conheça nossa história
-            </Button>
+            <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 2, flexWrap: 'wrap', justifyContent: 'center' }}>
+              <Button
+                variant="contained"
+                size="large"
+                onClick={() => scrollToSection('historia')}
+                sx={{
+                  bgcolor: '#FFC42E',
+                  color: '#1B2A6B',
+                  fontWeight: 700,
+                  px: 4,
+                  '&:hover': { bgcolor: '#ffd35c' },
+                }}
+              >
+                Conheça nossa história
+              </Button>
+              <Button
+                variant="outlined"
+                size="large"
+                onClick={() => navigate('/conheca')}
+                sx={{
+                  borderColor: 'white',
+                  color: 'white',
+                  fontWeight: 700,
+                  px: 4,
+                  '&:hover': { borderColor: '#FFC42E', color: '#FFC42E' },
+                }}
+              >
+                Conheça um pouco
+              </Button>
+            </Box>
             <Paper
               elevation={0}
               sx={{

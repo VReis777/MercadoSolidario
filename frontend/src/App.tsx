@@ -8,6 +8,7 @@ import { ProtectedRoute } from './auth/ProtectedRoute'
 import { RoleGuard } from './auth/RoleGuard'
 import PublicPage from './pages/PublicPage'
 import LandingPage from './pages/LandingPage'
+import ConhecaPage from './pages/ConhecaPage'
 import RumPage from './pages/RumPage'
 import RunVerifyPage from './pages/RunVerifyPage'
 import RunRegistrationsPage from './pages/RunRegistrationsPage'
@@ -73,6 +74,7 @@ function AppContent() {
       <Routes>
         <Route path="/" element={<PublicPage />} />
         <Route path="/nossahistoria" element={<LandingPage />} />
+        <Route path="/conheca" element={<ConhecaPage />} />
         <Route path="/rum" element={<RumPage />} />
         <Route path="/rum/verificar/:code" element={<RunVerifyPage />} />
         <Route path="/donate" element={<Navigate to="/doacao" replace />} />
