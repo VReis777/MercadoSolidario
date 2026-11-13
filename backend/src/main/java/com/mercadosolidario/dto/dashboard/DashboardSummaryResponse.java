@@ -14,6 +14,8 @@ public record DashboardSummaryResponse(
     StockIndicators stock,
     @JsonInclude(JsonInclude.Include.NON_NULL)
     DonationIndicators donations,
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    CashIndicators cash,
     DistributionIndicators distributions,
     boolean priorityConfigured,
     List<OperationalAlert> alerts,
@@ -44,6 +46,12 @@ public record DashboardSummaryResponse(
         BigDecimal confirmedFinancialAmount,
         long productDonations,
         long donatedProductEntries
+    ) {}
+
+    public record CashIndicators(
+        BigDecimal entries,
+        BigDecimal exits,
+        long movements
     ) {}
 
     public record DistributionIndicators(

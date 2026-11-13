@@ -27,6 +27,7 @@ public class DashboardService {
     private final ProductRepository productRepository;
     private final StockMovementRepository movementRepository;
     private final DonationRepository donationRepository;
+    private final CashMovementRepository cashMovementRepository;
     private final DistributionRepository distributionRepository;
     private final DistributionItemRepository distributionItemRepository;
     private final PriorityConfigurationRepository priorityConfigurationRepository;
@@ -70,6 +71,9 @@ public class DashboardService {
         DonationIndicators donationIndicators = financialAccess
             ? donations(fromDateTime, toExclusive)
             : null;
+        CashIndicators cashIndicators = financialAccess
+            ? cash(fromDateTime, toExclusive)
+            : null;
 
         DistributionIndicators distributionIndicators = distributions(fromDateTime, toExclusive);
         List<OperationalAlert> alerts = alerts(
@@ -84,11 +88,20 @@ public class DashboardService {
             familyIndicators,
             stockIndicators,
             donationIndicators,
+            cashIndicators,
             distributionIndicators,
             priorityConfigurationRepository.findFirstByActiveTrueOrderByVersionNumberDesc().isPresent(),
             alerts,
             recentStockMovements(),
             recentDistributions()
+        );
+    }
+
+    private CashIndicators cash(LocalDateTime from, LocalDateTime toExclusive) {
+        return new CashIndicators(
+            cashMovementRepository.sumByTypeInPeriod(CashMovementType.ENTRADA, from, toExclusive),
+            cashMovementRepository.sumByTypeInPeriod(CashMovementType.SAIDA, from, toExclusive),
+            cashMovementRepository.countByCreatedAtGreaterThanEqualAndCreatedAtLessThan(from, toExclusive)
         );
     }
 

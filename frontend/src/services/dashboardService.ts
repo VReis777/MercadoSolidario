@@ -32,6 +32,11 @@ export interface DashboardSummary {
     productDonations: number
     donatedProductEntries: number
   }
+  cash: null | {
+    entries: number
+    exits: number
+    movements: number
+  }
   distributions: {
     confirmed: number
     cancelled: number

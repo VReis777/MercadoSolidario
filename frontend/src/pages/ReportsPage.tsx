@@ -84,6 +84,28 @@ function ReportsPage() {
                     <Typography variant="body2" color="text.secondary">
                       {summary.donations.created} doações criadas · {summary.donations.awaitingPayment} aguardando
                     </Typography>
+                    {summary.cash && (
+                      <>
+                        <Divider sx={{ my: 1 }} />
+                        <Stack spacing={0.5}>
+                          <Stack direction="row" justifyContent="space-between">
+                            <Typography variant="body2">Entradas no caixa</Typography>
+                            <Typography variant="body2" fontWeight={600} color="success.main">
+                              {currency.format(summary.cash.entries)}
+                            </Typography>
+                          </Stack>
+                          <Stack direction="row" justifyContent="space-between">
+                            <Typography variant="body2">Saídas do caixa</Typography>
+                            <Typography variant="body2" fontWeight={600} color="error.main">
+                              {currency.format(summary.cash.exits)}
+                            </Typography>
+                          </Stack>
+                          <Typography variant="caption" color="text.secondary">
+                            {summary.cash.movements} movimentação(ões) manual(is) — inclui doações registradas direto no caixa
+                          </Typography>
+                        </Stack>
+                      </>
+                    )}
                   </>
                 ) : (
                   <Typography variant="body2" color="text.secondary">Módulo de doações sem dados no período.</Typography>
