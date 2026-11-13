@@ -274,20 +274,6 @@ function LandingPage() {
             >
               Conheça nossa história
             </Button>
-            <Button
-              variant="outlined"
-              size="large"
-              onClick={() => navigate('/conheca')}
-              sx={{
-                borderColor: 'white',
-                color: 'white',
-                fontWeight: 700,
-                px: 4,
-                '&:hover': { borderColor: '#FFC42E', color: '#FFC42E' },
-              }}
-            >
-              Conheça um pouco
-            </Button>
             <Paper
               elevation={0}
               sx={{
@@ -763,6 +749,9 @@ function LandingPage() {
           <Box sx={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: 2.5, mb: 2 }}>
             <Link component="button" color="inherit" underline="hover" onClick={() => goTo('inicio')}>
               Voltar ao início
+            </Link>
+            <Link component="button" color="inherit" underline="hover" onClick={() => navigate('/conheca')}>
+              Conheça um pouco
             </Link>
             <Link component="button" color="inherit" underline="hover" onClick={() => navigate('/doacao')}>
               DOE AQUI
