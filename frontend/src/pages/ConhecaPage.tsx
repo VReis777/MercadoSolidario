@@ -125,6 +125,7 @@ function ConhecaPage() {
             controls
             preload="metadata"
             playsInline
+            poster="/historia-video-poster.jpg"
             src="/historia-video.mp4"
             sx={{
               width: '100%',
