@@ -10,6 +10,7 @@ function PublicPage() {
       onPrimaryAction={(action) => {
         if (action === 'donate') navigate('/doacao')
         if (action === 'company') navigate('/sou-empresa')
+        if (action === 'story') navigate('/conheca')
       }}
       onBenefitRequest={() => navigate('/cadastro-beneficiado')}
       extraActions={

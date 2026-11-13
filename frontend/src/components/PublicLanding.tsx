@@ -14,11 +14,12 @@ import {
 } from '@mui/material'
 import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder'
 import BusinessIcon from '@mui/icons-material/Business'
+import VolunteerActivismIcon from '@mui/icons-material/VolunteerActivism'
 // Reabre em dezembro com o botão QUERO SER BENEFICIADO:
 // import HomeIcon from '@mui/icons-material/Home'
 
 interface PublicLandingProps {
-  onPrimaryAction?: (action: 'donate' | 'company' | 'benefit') => void
+  onPrimaryAction?: (action: 'donate' | 'company' | 'benefit' | 'story') => void
   onBenefitRequest?: () => void
   extraActions?: React.ReactNode
 }
@@ -26,7 +27,7 @@ interface PublicLandingProps {
 function PublicLanding({ onPrimaryAction, onBenefitRequest, extraActions }: PublicLandingProps) {
   const [info, setInfo] = useState<{ title: string; message: string } | null>(null)
 
-  const handleAction = (action: 'donate' | 'company' | 'benefit') => {
+  const handleAction = (action: 'donate' | 'company' | 'benefit' | 'story') => {
     if (action === 'donate' && onPrimaryAction) {
       onPrimaryAction(action)
       return
@@ -37,6 +38,10 @@ function PublicLanding({ onPrimaryAction, onBenefitRequest, extraActions }: Publ
     }
     if (action === 'benefit' && (onBenefitRequest || onPrimaryAction)) {
       ;(onBenefitRequest ?? onPrimaryAction)?.(action)
+      return
+    }
+    if (action === 'story' && onPrimaryAction) {
+      onPrimaryAction(action)
       return
     }
     const messages = {
@@ -52,6 +57,10 @@ function PublicLanding({ onPrimaryAction, onBenefitRequest, extraActions }: Publ
       benefit: {
         title: 'Quero ser beneficiado',
         message: 'O pedido público de benefício ainda será disponibilizado. Nenhum cadastro foi realizado.',
+      },
+      story: {
+        title: 'Conheça um pouco',
+        message: 'A página está sendo preparada.',
       },
     }
     setInfo(messages[action])
@@ -125,6 +134,20 @@ function PublicLanding({ onPrimaryAction, onBenefitRequest, extraActions }: Publ
               }}
             >
               SOU EMPRESA
+            </Button>
+            <Button
+              variant="outlined"
+              size="large"
+              startIcon={<VolunteerActivismIcon />}
+              onClick={() => handleAction('story')}
+              sx={{
+                minWidth: { xs: '100%', sm: 220 },
+                color: 'white',
+                borderColor: 'white',
+                '&:hover': { borderColor: 'white', bgcolor: 'rgba(255,255,255,0.08)' },
+              }}
+            >
+              CONHEÇA UM POUCO
             </Button>
             {/* Reabre em dezembro: cadastro público de beneficiários
             <Button
