@@ -41,3 +41,7 @@ backup/
 # Planilhas com dados pessoais de beneficiários (não versionar)
 *.ods
 *.xlsx
+
+# arquivos de referencia locais
+*.MOV
+Screenshot*.png

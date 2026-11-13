@@ -130,6 +130,9 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.PUT, "/api/families/*/members/**").hasAnyRole("ADMIN", "RH_TESOURARIA")
                 .requestMatchers(HttpMethod.DELETE, "/api/families/*/members/**").hasAnyRole("ADMIN", "RH_TESOURARIA")
                 
+                // Estatisticas de acesso: ADMIN e RH_TESOURARIA (tela de relatorios)
+                .requestMatchers("/api/admin/site-stats").hasAnyRole("ADMIN", "RH_TESOURARIA")
+
                 // Admin only endpoints
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
                 .requestMatchers("/api/tasks/assignable-users").hasAnyRole("ADMIN", "RH_TESOURARIA")

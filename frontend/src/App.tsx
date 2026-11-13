@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import type { ReactNode } from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { ThemeProvider } from '@mui/material/styles'
@@ -38,6 +39,26 @@ function LegacyRedirect({ to }: { to: string }) {
   return <Navigate to={to + search} replace />
 }
 
+const PUBLIC_TRACKED_PATHS = ['/', '/nossahistoria', '/conheca', '/doacao', '/rum', '/sou-empresa']
+
+// Conta 1 acesso por pagina por sessao (sem cookies/dados pessoais).
+function PageViewTracker() {
+  const { pathname } = useLocation()
+  useEffect(() => {
+    if (!PUBLIC_TRACKED_PATHS.includes(pathname)) return
+    const key = `pv:${pathname}`
+    if (sessionStorage.getItem(key)) return
+    sessionStorage.setItem(key, '1')
+    fetch(`${import.meta.env.VITE_API_URL}/api/public/site-stats/view`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ path: pathname }),
+      keepalive: true,
+    }).catch(() => {})
+  }, [pathname])
+  return null
+}
+
 function AppContent() {
   const { isAuthenticated } = useAuth();
   const { pathname } = useLocation()
@@ -71,6 +92,7 @@ function AppContent() {
   return (
     <>
       {showPublicNavbar && <AppNavbar />}
+      <PageViewTracker />
       <Routes>
         <Route path="/" element={<PublicPage />} />
         <Route path="/nossahistoria" element={<LandingPage />} />

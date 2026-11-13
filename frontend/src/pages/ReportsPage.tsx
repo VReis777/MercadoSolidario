@@ -8,12 +8,14 @@ import campaignService, { CampaignOverview } from '../services/campaignService'
 import { dashboardService, DashboardSummary } from '../services/dashboardService'
 import { familyStatusLabels } from '../components/audit/RegistrationsTab'
 import { getApiErrorMessage } from '../utils/apiError'
+import siteStatsService, { SiteStatsSummary } from '../services/siteStatsService'
 
 const currency = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' })
 
 function ReportsPage() {
   const [overview, setOverview] = useState<CampaignOverview | null>(null)
   const [summary, setSummary] = useState<DashboardSummary | null>(null)
+  const [siteStats, setSiteStats] = useState<SiteStatsSummary | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
@@ -24,8 +26,9 @@ function ReportsPage() {
     Promise.all([
       campaignService.overview(),
       dashboardService.summary(from, to),
+      siteStatsService.summary().catch(() => null),
     ])
-      .then(([o, s]) => { setOverview(o); setSummary(s) })
+      .then(([o, s, st]) => { setOverview(o); setSummary(s); setSiteStats(st) })
       .catch((e) => setError(getApiErrorMessage(e, 'Não foi possível carregar os relatórios.')))
       .finally(() => setLoading(false))
   }, [])
@@ -84,6 +87,29 @@ function ReportsPage() {
                   </>
                 ) : (
                   <Typography variant="body2" color="text.secondary">Módulo de doações sem dados no período.</Typography>
+                )}
+              </CardContent></Card>
+            </Grid>
+            <Grid item xs={12} md={4}>
+              <Card><CardContent>
+                <Typography variant="h6" gutterBottom>Acessos ao site</Typography>
+                {siteStats ? (
+                  <>
+                    <Typography variant="h4" color="primary.main" fontWeight={700}>
+                      {siteStats.total.toLocaleString('pt-BR')}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                      visitas registradas (1 por página por sessão)
+                    </Typography>
+                    {siteStats.pages.slice(0, 4).map((page) => (
+                      <Stack key={page.path} direction="row" justifyContent="space-between">
+                        <Typography variant="body2">{page.path === '/' ? 'Início' : page.path}</Typography>
+                        <Typography variant="body2" fontWeight={600}>{page.views.toLocaleString('pt-BR')}</Typography>
+                      </Stack>
+                    ))}
+                  </>
+                ) : (
+                  <Typography variant="body2" color="text.secondary">Contador indisponível.</Typography>
                 )}
               </CardContent></Card>
             </Grid>
