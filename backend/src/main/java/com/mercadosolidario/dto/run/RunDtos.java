@@ -2,9 +2,11 @@ package com.mercadosolidario.dto.run;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -29,6 +31,7 @@ public class RunDtos {
         @NotBlank @Size(max = 255) String fullName,
         @NotBlank @Email @Size(max = 255) String email,
         @Size(max = 60) String phone,
+        @NotNull LocalDate birthDate,
         @NotBlank String modality,
         @Size(max = 10) String shirtSize,
         @NotBlank String paymentMethod,
@@ -89,6 +92,7 @@ public class RunDtos {
         LocalDateTime paidAt,
         LocalDateTime createdAt,
         LocalDateTime kitDeliveredAt,
-        String kitDeliveredBy
+        String kitDeliveredBy,
+        LocalDate birthDate
     ) {}
 }

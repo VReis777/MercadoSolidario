@@ -38,6 +38,7 @@ function RumPage() {
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
+  const [birthDate, setBirthDate] = useState('')
   const [shirtSize, setShirtSize] = useState('')
   const [extraDonation, setExtraDonation] = useState('')
   const [method, setMethod] = useState<'PIX' | 'CARTAO'>('PIX')
@@ -74,6 +75,10 @@ function RumPage() {
     if (!open) return
     if (!name.trim()) { setError('Informe seu nome completo.'); return }
     if (!email.trim()) { setError('Informe seu e-mail — ele recebe o QR code de retirada do kit.'); return }
+    if (!birthDate) { setError('Informe sua data de nascimento — a inscrição é exclusiva para maiores de 18 anos.'); return }
+    const birth = new Date(birthDate + 'T12:00:00')
+    const age = (Date.now() - birth.getTime()) / (365.25 * 24 * 3600 * 1000)
+    if (!Number.isFinite(age) || age < 18 || age > 120) { setError('A corrida e a caminhada são exclusivas para maiores de 18 anos.'); return }
     setSending(true)
     setError('')
     try {
@@ -82,6 +87,7 @@ function RumPage() {
         fullName: name.trim(),
         email: email.trim(),
         phone: phone.trim() || undefined,
+        birthDate,
         modality: open,
         shirtSize: shirtSize || undefined,
         paymentMethod: method,
@@ -363,6 +369,11 @@ function RumPage() {
                 helperText="Obrigatório — o QR code de retirada do kit é enviado para este e-mail." />
               <TextField fullWidth label="Telefone/WhatsApp" value={phone}
                 onChange={(e) => setPhone(e.target.value)} />
+              <TextField required fullWidth label="Data de nascimento" type="date" value={birthDate}
+                onChange={(e) => setBirthDate(e.target.value)}
+                InputLabelProps={{ shrink: true }}
+                inputProps={{ max: new Date().toISOString().slice(0, 10) }}
+                helperText="A inscrição é exclusiva para maiores de 18 anos." />
               <TextField
                 fullWidth select label="Tamanho da camisa" value={shirtSize}
                 onChange={(e) => setShirtSize(e.target.value)}

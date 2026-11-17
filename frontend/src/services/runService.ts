@@ -70,6 +70,7 @@ export interface AdminRunRegistration {
   createdAt: string
   kitDeliveredAt: string | null
   kitDeliveredBy: string | null
+  birthDate: string | null
 }
 
 const publicApi = axios.create({ baseURL: import.meta.env.VITE_API_URL })
@@ -83,6 +84,7 @@ const runService = {
     fullName: string
     email?: string
     phone?: string
+    birthDate?: string
     modality: string
     shirtSize?: string
     paymentMethod: string

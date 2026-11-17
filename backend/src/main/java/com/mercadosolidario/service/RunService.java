@@ -23,6 +23,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -84,6 +85,12 @@ public class RunService {
             throw new IllegalArgumentException("Pagamento em cartão estará disponível em breve — use PIX.");
         }
 
+        LocalDate birthDate = request.birthDate();
+        LocalDate today = LocalDate.now();
+        if (birthDate == null || birthDate.isAfter(today.minusYears(18)) || birthDate.isAfter(today)) {
+            throw new IllegalArgumentException("A corrida e a caminhada são exclusivas para maiores de 18 anos.");
+        }
+
         int slots = slots(modality);
         long registered = registrationRepository.countActiveByModality(modality);
         if (registered >= slots) {
@@ -94,6 +101,7 @@ public class RunService {
         registration.setFullName(request.fullName().trim());
         registration.setEmail(trimToNull(request.email()));
         registration.setPhone(trimToNull(request.phone()));
+        registration.setBirthDate(birthDate);
         registration.setModality(modality);
         registration.setShirtSize(trimToNull(request.shirtSize()));
         registration.setAmount(RunPaymentGateway.reais(priceCents()));
@@ -274,7 +282,7 @@ public class RunService {
                 r.getShirtSize(), r.getAmount(), r.getExtraDonation(), r.totalCharged(),
                 r.getPaymentMethod(), r.getStatus(),
                 r.getPaidAt(), r.getCreatedAt(),
-                r.getKitDeliveredAt(), r.getKitDeliveredBy()))
+                r.getKitDeliveredAt(), r.getKitDeliveredBy(), r.getBirthDate()))
             .toList();
     }
 

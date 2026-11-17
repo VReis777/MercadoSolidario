@@ -201,6 +201,7 @@ function RunRegistrationsPage() {
                         </Typography>
                         <Typography variant="body2" color="text.secondary">
                           {r.email || '—'}{r.phone ? ` · ${r.phone}` : ''}
+                          {r.birthDate ? ` · nasc. ${new Date(r.birthDate + 'T12:00:00').toLocaleDateString('pt-BR')}` : ''}
                         </Typography>
                         <Typography variant="caption" color="text.secondary">
                           {new Date(r.createdAt).toLocaleString('pt-BR')}

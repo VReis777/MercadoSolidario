@@ -5,6 +5,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
@@ -25,6 +26,9 @@ public class RunRegistration {
 
     @Column(name = "phone")
     private String phone;
+
+    @Column(name = "birth_date")
+    private LocalDate birthDate;
 
     // '3KM' | '7KM'
     @Column(name = "modality", nullable = false, length = 10)
