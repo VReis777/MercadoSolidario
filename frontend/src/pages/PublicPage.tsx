@@ -11,6 +11,7 @@ function PublicPage() {
         if (action === 'donate') navigate('/doacao')
         if (action === 'company') navigate('/sou-empresa')
         if (action === 'story') navigate('/conheca')
+        if (action === 'run') navigate('/run')
       }}
       onBenefitRequest={() => navigate('/cadastro-beneficiado')}
       extraActions={

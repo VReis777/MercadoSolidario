@@ -15,11 +15,12 @@ import {
 import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder'
 import BusinessIcon from '@mui/icons-material/Business'
 import VolunteerActivismIcon from '@mui/icons-material/VolunteerActivism'
+import DirectionsRunIcon from '@mui/icons-material/DirectionsRun'
 // Reabre em dezembro com o botão QUERO SER BENEFICIADO:
 // import HomeIcon from '@mui/icons-material/Home'
 
 interface PublicLandingProps {
-  onPrimaryAction?: (action: 'donate' | 'company' | 'benefit' | 'story') => void
+  onPrimaryAction?: (action: 'donate' | 'company' | 'benefit' | 'story' | 'run') => void
   onBenefitRequest?: () => void
   extraActions?: React.ReactNode
 }
@@ -27,7 +28,7 @@ interface PublicLandingProps {
 function PublicLanding({ onPrimaryAction, onBenefitRequest, extraActions }: PublicLandingProps) {
   const [info, setInfo] = useState<{ title: string; message: string } | null>(null)
 
-  const handleAction = (action: 'donate' | 'company' | 'benefit' | 'story') => {
+  const handleAction = (action: 'donate' | 'company' | 'benefit' | 'story' | 'run') => {
     if (action === 'donate' && onPrimaryAction) {
       onPrimaryAction(action)
       return
@@ -41,6 +42,10 @@ function PublicLanding({ onPrimaryAction, onBenefitRequest, extraActions }: Publ
       return
     }
     if (action === 'story' && onPrimaryAction) {
+      onPrimaryAction(action)
+      return
+    }
+    if (action === 'run' && onPrimaryAction) {
       onPrimaryAction(action)
       return
     }
@@ -61,6 +66,10 @@ function PublicLanding({ onPrimaryAction, onBenefitRequest, extraActions }: Publ
       story: {
         title: 'Conheça um pouco',
         message: 'A página está sendo preparada.',
+      },
+      run: {
+        title: 'Mercado Solidário Run',
+        message: 'A página da corrida está sendo preparada.',
       },
     }
     setInfo(messages[action])
@@ -151,6 +160,23 @@ function PublicLanding({ onPrimaryAction, onBenefitRequest, extraActions }: Publ
               }}
             >
               CONHEÇA UM POUCO
+            </Button>
+            <Button
+              variant="contained"
+              size="large"
+              startIcon={<DirectionsRunIcon />}
+              onClick={() => handleAction('run')}
+              sx={{
+                minWidth: { xs: '100%', sm: 200 },
+                bgcolor: '#19B8D2',
+                color: '#1B2A6B',
+                fontWeight: 800,
+                boxShadow: '0 4px 14px rgba(0,0,0,0.35)',
+                '&:hover': { bgcolor: '#3ec9e0', transform: 'translateY(-1px)' },
+                transition: 'all 0.15s ease',
+              }}
+            >
+              CORRA COM A GENTE
             </Button>
             {/* Reabre em dezembro: cadastro público de beneficiários
             <Button
