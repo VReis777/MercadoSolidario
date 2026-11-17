@@ -12,14 +12,11 @@ import {
   Grid,
   Typography,
 } from '@mui/material'
-import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder'
-import BusinessIcon from '@mui/icons-material/Business'
-import VolunteerActivismIcon from '@mui/icons-material/VolunteerActivism'
 // Reabre em dezembro com o botão QUERO SER BENEFICIADO:
 // import HomeIcon from '@mui/icons-material/Home'
 
 interface PublicLandingProps {
-  onPrimaryAction?: (action: 'donate' | 'company' | 'benefit' | 'story' | 'run') => void
+  onPrimaryAction?: (action: 'donate' | 'company' | 'benefit' | 'story' | 'run' | 'history') => void
   onBenefitRequest?: () => void
   extraActions?: React.ReactNode
 }
@@ -27,7 +24,7 @@ interface PublicLandingProps {
 function PublicLanding({ onPrimaryAction, onBenefitRequest, extraActions }: PublicLandingProps) {
   const [info, setInfo] = useState<{ title: string; message: string } | null>(null)
 
-  const handleAction = (action: 'donate' | 'company' | 'benefit' | 'story' | 'run') => {
+  const handleAction = (action: 'donate' | 'company' | 'benefit' | 'story' | 'run' | 'history') => {
     if (action === 'donate' && onPrimaryAction) {
       onPrimaryAction(action)
       return
@@ -41,6 +38,10 @@ function PublicLanding({ onPrimaryAction, onBenefitRequest, extraActions }: Publ
       return
     }
     if (action === 'story' && onPrimaryAction) {
+      onPrimaryAction(action)
+      return
+    }
+    if (action === 'history' && onPrimaryAction) {
       onPrimaryAction(action)
       return
     }
@@ -69,6 +70,10 @@ function PublicLanding({ onPrimaryAction, onBenefitRequest, extraActions }: Publ
       run: {
         title: 'Mercado Solidário Run',
         message: 'A página da corrida está sendo preparada.',
+      },
+      history: {
+        title: 'Nossa História',
+        message: 'A página está sendo preparada.',
       },
     }
     setInfo(messages[action])
@@ -119,58 +124,62 @@ function PublicLanding({ onPrimaryAction, onBenefitRequest, extraActions }: Publ
             Aqui, a solidariedade aparece com organização, respeito e transparência.
           </Typography>
           <Box sx={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 1.5 }}>
-            <Button
-              variant="contained"
-              color="secondary"
-              size="large"
-              startIcon={<FavoriteBorderIcon />}
+            <Box
+              component="img"
+              src="/botao-doe.png"
+              alt="Doe aqui — Mercado Solidário"
               onClick={() => handleAction('donate')}
-              sx={{ minWidth: { xs: '100%', sm: 200 } }}
-            >
-              DOE AQUI
-            </Button>
-            <Button
-              variant="outlined"
-              size="large"
-              startIcon={<BusinessIcon />}
+              sx={{
+                height: { xs: 68, sm: 78 },
+                width: 'auto',
+                cursor: 'pointer',
+                borderRadius: 2,
+                boxShadow: '0 10px 30px rgba(0,0,0,0.35)',
+                '&:hover': { transform: 'translateY(-3px) scale(1.04)', filter: 'brightness(1.08)' },
+                transition: 'all 0.2s ease',
+              }}
+            />
+            <Box
+              component="img"
+              src="/botao-empresa.png"
+              alt="Sou empresa — Mercado Solidário"
               onClick={() => handleAction('company')}
               sx={{
-                minWidth: { xs: '100%', sm: 200 },
-                color: 'white',
-                borderColor: 'white',
-                '&:hover': { borderColor: 'white', bgcolor: 'rgba(255,255,255,0.08)' },
+                height: { xs: 68, sm: 78 },
+                width: 'auto',
+                cursor: 'pointer',
+                borderRadius: 2,
+                boxShadow: '0 8px 24px rgba(0,0,0,0.35)',
+                '&:hover': { transform: 'translateY(-3px) scale(1.04)', filter: 'brightness(1.08)' },
+                transition: 'all 0.2s ease',
               }}
-            >
-              SOU EMPRESA
-            </Button>
-            <Button
-              variant="contained"
-              size="large"
-              startIcon={<VolunteerActivismIcon />}
-              onClick={() => handleAction('story')}
+            />
+            <Box
+              component="img"
+              src="/botao-historia.png"
+              alt="Nossa História — Mercado Solidário"
+              onClick={() => handleAction('history')}
               sx={{
-                minWidth: { xs: '100%', sm: 220 },
-                bgcolor: '#FFC42E',
-                color: '#1B2A6B',
-                fontWeight: 800,
-                boxShadow: '0 4px 14px rgba(0,0,0,0.35)',
-                '&:hover': { bgcolor: '#ffd35c', transform: 'translateY(-1px)' },
-                transition: 'all 0.15s ease',
+                height: { xs: 68, sm: 78 },
+                width: 'auto',
+                cursor: 'pointer',
+                borderRadius: 2,
+                boxShadow: '0 8px 24px rgba(0,0,0,0.35)',
+                '&:hover': { transform: 'translateY(-3px) scale(1.04)', filter: 'brightness(1.08)' },
+                transition: 'all 0.2s ease',
               }}
-            >
-              CONHEÇA UM POUCO
-            </Button>
+            />
             <Box
               component="img"
               src="/botao-run.png"
               alt="Corra com a gente — Mercado Solidário Run"
               onClick={() => handleAction('run')}
               sx={{
-                height: { xs: 84, sm: 96 },
+                height: { xs: 68, sm: 78 },
                 width: 'auto',
                 cursor: 'pointer',
                 borderRadius: 2,
-                boxShadow: '0 10px 30px rgba(25,184,210,.55)',
+                boxShadow: '0 8px 24px rgba(25,184,210,.55)',
                 '&:hover': { transform: 'translateY(-3px) scale(1.04)', filter: 'brightness(1.08)' },
                 transition: 'all 0.2s ease',
               }}
