@@ -12,6 +12,7 @@ import LandingPage from './pages/LandingPage'
 import ConhecaPage from './pages/ConhecaPage'
 import RumPage from './pages/RumPage'
 import RunVerifyPage from './pages/RunVerifyPage'
+import RunPaymentReturnPage from './pages/RunPaymentReturnPage'
 import RunRegistrationsPage from './pages/RunRegistrationsPage'
 import RunKitScanPage from './pages/RunKitScanPage'
 import LoginPage from './pages/LoginPage'
@@ -105,6 +106,7 @@ function AppContent() {
         <Route path="/conheca" element={<ConhecaPage />} />
         <Route path="/run" element={<RumPage />} />
         <Route path="/run/verificar/:code" element={<RunVerifyPage />} />
+        <Route path="/run/inscricao/:id" element={<RunPaymentReturnPage />} />
         <Route path="/rum/*" element={<RumRedirect />} />
         <Route path="/donate" element={<Navigate to="/doacao" replace />} />
         <Route path="/doacao" element={<PublicDonationPage />} />
