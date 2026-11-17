@@ -83,8 +83,8 @@ function RunRegistrationsPage() {
     const pending = registrations.filter((r) => r.status === 'PENDENTE')
     const raised = paid.reduce((sum, r) => sum + (r.totalCharged ?? r.amount), 0)
     const by3km = paid.filter((r) => r.modality === '3KM').length
-    const by6km = paid.filter((r) => r.modality === '6KM').length
-    return { paid: paid.length, pending: pending.length, raised, by3km, by6km }
+    const by7km = paid.filter((r) => r.modality === '7KM').length
+    return { paid: paid.length, pending: pending.length, raised, by3km, by7km }
   }, [registrations])
 
   const confirm = async (id: number) => {
@@ -123,7 +123,7 @@ function RunRegistrationsPage() {
             <ArrowBackIcon />
           </IconButton>
           <DirectionsRunIcon sx={{ mr: 1 }} />
-          <Typography variant="h6" sx={{ flexGrow: 1 }}>Inscritos — Rum</Typography>
+          <Typography variant="h6" sx={{ flexGrow: 1 }}>Inscritos — Run</Typography>
           <ThemeToggle />
         </Toolbar>
       </Box>
@@ -149,8 +149,8 @@ function RunRegistrationsPage() {
               </Grid>
               <Grid item xs={6} sm={3}>
                 <Card><CardContent>
-                  <Typography color="text.secondary">3KM / 6KM pagos</Typography>
-                  <Typography variant="h4" fontWeight={800}>{totals.by3km} / {totals.by6km}</Typography>
+                  <Typography color="text.secondary">3KM / 7KM pagos</Typography>
+                  <Typography variant="h4" fontWeight={800}>{totals.by3km} / {totals.by7km}</Typography>
                 </CardContent></Card>
               </Grid>
               <Grid item xs={6} sm={3}>
@@ -168,7 +168,7 @@ function RunRegistrationsPage() {
                 onChange={(e) => setFilterModality(e.target.value)} sx={{ minWidth: 170 }}>
                 <MenuItem value="">Todas</MenuItem>
                 <MenuItem value="3KM">3 km — caminhada</MenuItem>
-                <MenuItem value="6KM">6 km — corrida</MenuItem>
+                <MenuItem value="7KM">7 km — corrida</MenuItem>
               </TextField>
               <TextField size="small" select label="Status" value={filterStatus}
                 onChange={(e) => setFilterStatus(e.target.value)} sx={{ minWidth: 160 }}>
@@ -194,7 +194,7 @@ function RunRegistrationsPage() {
                             label={STATUS_LABELS[r.status] ?? r.status} />
                         </Stack>
                         <Typography variant="body2">
-                          {r.modality === '3KM' ? '3 km — caminhada' : '6 km — corrida'} · {fmtBRL(r.totalCharged ?? r.amount)}
+                          {r.modality === '3KM' ? '3 km — caminhada' : '7 km — corrida'} · {fmtBRL(r.totalCharged ?? r.amount)}
                           {r.extraDonation ? ` (${fmtBRL(r.amount)} + ${fmtBRL(r.extraDonation)} extra)` : ''}
                           {' · '}{r.paymentMethod}
                           {r.shirtSize ? ` · camisa ${r.shirtSize}` : ''}

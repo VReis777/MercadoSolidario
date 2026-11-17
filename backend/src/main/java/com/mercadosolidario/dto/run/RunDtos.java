@@ -1,5 +1,6 @@
 package com.mercadosolidario.dto.run;
 
+import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
@@ -26,7 +27,7 @@ public class RunDtos {
 
     public record RunRegisterRequest(
         @NotBlank @Size(max = 255) String fullName,
-        @Size(max = 255) String email,
+        @NotBlank @Email @Size(max = 255) String email,
         @Size(max = 60) String phone,
         @NotBlank String modality,
         @Size(max = 10) String shirtSize,

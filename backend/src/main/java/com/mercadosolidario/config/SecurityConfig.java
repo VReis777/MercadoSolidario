@@ -90,7 +90,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/donations/**")
                     .hasAnyRole("ADMIN", "RH_TESOURARIA")
 
-                // Corrida Rum: lista e confirmação/cancelamento
+                // Corrida Run: lista e confirmação/cancelamento
                 .requestMatchers(HttpMethod.GET, "/api/rum/registrations")
                     .hasAnyRole("ADMIN", "RH_TESOURARIA")
                 .requestMatchers(HttpMethod.POST,

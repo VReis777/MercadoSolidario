@@ -121,7 +121,7 @@ function RunKitScanPage() {
             <ArrowBackIcon />
           </IconButton>
           <QrCodeScannerIcon sx={{ mr: 1 }} />
-          <Typography variant="h6" sx={{ flexGrow: 1 }}>Verificar Inscritos — Rum</Typography>
+          <Typography variant="h6" sx={{ flexGrow: 1 }}>Verificar Inscritos — Run</Typography>
           <ThemeToggle />
         </Toolbar>
       </Box>
@@ -199,7 +199,7 @@ function RunKitScanPage() {
                 value={code}
                 onChange={(e) => setCode(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && void check()}
-                placeholder="Ex.: LEG-1 ou .../rum/verificar/abc123"
+                placeholder="Ex.: LEG-1 ou .../run/verificar/abc123"
               />
               <Button variant="contained" onClick={() => void check()} disabled={loading || !code.trim()}>
                 {loading ? '...' : 'Verificar'}
@@ -225,7 +225,7 @@ function RunKitScanPage() {
                 />
               </Stack>
               <Typography sx={{ mt: 1 }}>
-                {verify.modality === '3KM' ? '3 km — caminhada' : '6 km — corrida'}
+                {verify.modality === '3KM' ? '3 km — caminhada' : '7 km — corrida'}
               </Typography>
               <Typography fontWeight={700}>
                 Camisa: {verify.shirtSize || 'não informado'}

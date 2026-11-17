@@ -39,7 +39,13 @@ function LegacyRedirect({ to }: { to: string }) {
   return <Navigate to={to + search} replace />
 }
 
-const PUBLIC_TRACKED_PATHS = ['/', '/nossahistoria', '/conheca', '/doacao', '/rum', '/sou-empresa']
+const PUBLIC_TRACKED_PATHS = ['/', '/nossahistoria', '/conheca', '/doacao', '/run', '/sou-empresa']
+
+// /rum/* redireciona para /run/* preservando o caminho (links/e-mails antigos).
+function RumRedirect() {
+  const { pathname, search } = useLocation()
+  return <Navigate to={pathname.replace(/^\/rum/, '/run') + search} replace />
+}
 
 // Conta 1 acesso por pagina por sessao (sem cookies/dados pessoais).
 function PageViewTracker() {
@@ -97,8 +103,9 @@ function AppContent() {
         <Route path="/" element={<PublicPage />} />
         <Route path="/nossahistoria" element={<LandingPage />} />
         <Route path="/conheca" element={<ConhecaPage />} />
-        <Route path="/rum" element={<RumPage />} />
-        <Route path="/rum/verificar/:code" element={<RunVerifyPage />} />
+        <Route path="/run" element={<RumPage />} />
+        <Route path="/run/verificar/:code" element={<RunVerifyPage />} />
+        <Route path="/rum/*" element={<RumRedirect />} />
         <Route path="/donate" element={<Navigate to="/doacao" replace />} />
         <Route path="/doacao" element={<PublicDonationPage />} />
         {/* Reabre em dezembro: fluxos públicos de pedido de atendimento e cadastro

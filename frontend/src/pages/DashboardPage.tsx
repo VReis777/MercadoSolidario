@@ -231,14 +231,14 @@ function DashboardPage() {
     },
     {
       id: 'run',
-      title: 'Inscritos — Rum',
+      title: 'Inscritos — Run',
       description: 'Inscrições, pagamentos e vagas da corrida',
       icon: <DirectionsRunIcon />,
       requiredRoles: ['ROLE_ADMIN', 'ROLE_RH_TESOURARIA'],
     },
     {
       id: 'run-verify',
-      title: 'Verificar Inscritos Rum',
+      title: 'Verificar Inscritos Run',
       description: 'Escanear QR e registrar retirada do kit',
       icon: <DirectionsRunIcon />,
       requiredRoles: ['ROLE_ADMIN', 'ROLE_RH_TESOURARIA', 'ROLE_DIACONO'],

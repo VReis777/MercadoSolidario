@@ -74,7 +74,7 @@ function RunVerifyPage() {
             src="/logo-mercado-solidario.png"
             alt="Logo do Mercado Solidário Petrópolis"
             sx={{ height: { xs: 44, md: 56 }, width: 'auto', cursor: 'pointer' }}
-            onClick={() => navigate('/rum')}
+            onClick={() => navigate('/run')}
           />
           <Typography sx={{ color: '#FFC42E', fontWeight: 800, letterSpacing: 1 }}>
             VERIFICAÇÃO DE INSCRIÇÃO
@@ -108,7 +108,7 @@ function RunVerifyPage() {
                 {verify.fullName}
               </Typography>
               <Typography sx={{ color: '#44506B', fontWeight: 700 }}>
-                {verify.modality === '3KM' ? '3 km — caminhada' : '6 km — corrida'}
+                {verify.modality === '3KM' ? '3 km — caminhada' : '7 km — corrida'}
               </Typography>
               <Typography sx={{ color: '#44506B' }}>
                 Camisa: <strong>{verify.shirtSize || 'não informado'}</strong>

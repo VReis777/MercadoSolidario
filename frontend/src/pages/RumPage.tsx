@@ -73,14 +73,14 @@ function RumPage() {
   const submit = async () => {
     if (!open) return
     if (!name.trim()) { setError('Informe seu nome completo.'); return }
-    if (!email.trim() && !phone.trim()) { setError('Informe e-mail ou telefone para contato.'); return }
+    if (!email.trim()) { setError('Informe seu e-mail — ele recebe o QR code de retirada do kit.'); return }
     setSending(true)
     setError('')
     try {
       const extra = Number(extraDonation.replace(',', '.'))
       const created = await runService.register({
         fullName: name.trim(),
-        email: email.trim() || undefined,
+        email: email.trim(),
         phone: phone.trim() || undefined,
         modality: open,
         shirtSize: shirtSize || undefined,
@@ -144,7 +144,7 @@ function RumPage() {
         <Box
           component="img"
           src="/rum-principal-horizontal.jpg"
-          alt="Cartaz oficial Mercado Solidário Run — 13 de dezembro — 3KM caminhada e 6KM corrida"
+          alt="Cartaz oficial Mercado Solidário Run — 13 de dezembro — 3KM caminhada e 7KM corrida"
           sx={{
             display: { xs: 'none', md: 'block' },
             mx: 'auto', maxWidth: 980, width: '100%', borderRadius: 3,
@@ -154,7 +154,7 @@ function RumPage() {
         <Box
           component="img"
           src="/rum-principal-vertical.jpg"
-          alt="Cartaz oficial Mercado Solidário Run — 13 de dezembro — 3KM caminhada e 6KM corrida"
+          alt="Cartaz oficial Mercado Solidário Run — 13 de dezembro — 3KM caminhada e 7KM corrida"
           sx={{
             display: { xs: 'block', md: 'none' },
             mx: 'auto', maxWidth: 420, width: '92%', borderRadius: 3,
@@ -272,8 +272,10 @@ function RumPage() {
             Seus passos alimentam sonhos e transformam realidades.
           </Typography>
           <Typography sx={{ color: '#44506B', mt: 1 }}>
-            Toda a arrecadação do Mercado Solidário Run ajuda a alcançar a meta de
-            500 famílias assistidas em 2026.
+            Esta corrida foi criada para ajudar uma causa maior: <strong>toda a arrecadação</strong> —
+            inscrições, doações extras e patrocínios — vira recurso do Mercado Solidário e ajuda a
+            alcançar a meta de <strong>500 famílias assistidas em 2026</strong>. Corra com a gente
+            e seja parte dessa corrente do bem.
           </Typography>
         </Paper>
       </Container>
@@ -285,7 +287,7 @@ function RumPage() {
       {/* Diálogo de inscrição */}
       <Dialog open={open !== null} onClose={() => !sending && setOpen(null)} maxWidth="xs" fullWidth>
         <DialogTitle sx={{ fontWeight: 800, color: '#1B2A6B' }}>
-          Inscrição {open === '3KM' ? '3 km — caminhada' : '6 km — corrida'}
+          Inscrição {open === '3KM' ? '3 km — caminhada' : '7 km — corrida'}
         </DialogTitle>
         <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
           {registration && paid ? (
@@ -297,7 +299,7 @@ function RumPage() {
               {status?.checkinCode && (
                 <Button
                   variant="contained"
-                  onClick={() => navigate(`/rum/verificar/${status.checkinCode}`)}
+                  onClick={() => navigate(`/run/verificar/${status.checkinCode}`)}
                   sx={{ bgcolor: '#1B2A6B', '&:hover': { bgcolor: '#2E4FA3' }, fontWeight: 700 }}
                 >
                   Ver meu QR de retirada do kit
@@ -356,8 +358,9 @@ function RumPage() {
               )}
               <TextField required fullWidth label="Nome completo" value={name}
                 onChange={(e) => setName(e.target.value)} />
-              <TextField fullWidth label="E-mail" type="email" value={email}
-                onChange={(e) => setEmail(e.target.value)} />
+              <TextField required fullWidth label="E-mail" type="email" value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                helperText="Obrigatório — o QR code de retirada do kit é enviado para este e-mail." />
               <TextField fullWidth label="Telefone/WhatsApp" value={phone}
                 onChange={(e) => setPhone(e.target.value)} />
               <TextField

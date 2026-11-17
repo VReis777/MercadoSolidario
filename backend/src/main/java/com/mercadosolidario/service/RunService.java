@@ -40,7 +40,7 @@ public class RunService {
     private static final String PIX_MERCHANT_NAME = "PIX_MERCHANT_NAME";
     private static final String PIX_MERCHANT_CITY = "PIX_MERCHANT_CITY";
     private static final long DEFAULT_PRICE_CENTS = 7000;
-    private static final List<String> MODALITIES = List.of("3KM", "6KM");
+    private static final List<String> MODALITIES = List.of("3KM", "7KM");
 
     private final RunRegistrationRepository registrationRepository;
     private final DonationRepository donationRepository;
@@ -64,7 +64,7 @@ public class RunService {
         List<ModalityInfo> modalities = MODALITIES.stream().map(modality -> {
             int slots = slots(modality);
             long registered = registrationRepository.countActiveByModality(modality);
-            String label = "3KM".equals(modality) ? "3 km — caminhada" : "6 km — corrida";
+            String label = "3KM".equals(modality) ? "3 km — caminhada" : "7 km — corrida";
             return new ModalityInfo(modality, label, slots, registered, Math.max(0, slots - registered));
         }).toList();
         return new RunInfoResponse(amount, paymentGateway.isEnabled(), paymentGateway.isEnabled(), modalities);
@@ -74,7 +74,7 @@ public class RunService {
     public RunRegistrationResponse register(RunRegisterRequest request) {
         String modality = request.modality().trim().toUpperCase();
         if (!MODALITIES.contains(modality)) {
-            throw new IllegalArgumentException("Modalidade inválida — escolha 3KM ou 6KM.");
+            throw new IllegalArgumentException("Modalidade inválida — escolha 3KM ou 7KM.");
         }
         String method = request.paymentMethod().trim().toUpperCase();
         if (!method.equals("PIX") && !method.equals("CARTAO")) {
@@ -234,7 +234,7 @@ public class RunService {
         RunRegistration registration = registrationRepository.findByCheckinCode(code)
             .orElseThrow(() -> new ResourceNotFoundException("Código de inscrição inválido."));
         String qr = pixPayloadGenerator.generateQrCodeDataUri(
-            frontendBaseUrl + "/rum/verificar/" + code);
+            frontendBaseUrl + "/run/verificar/" + code);
         return new RunVerifyResponse(
             registration.getId(), registration.getFullName(), registration.getModality(),
             registration.getShirtSize(), registration.getStatus(),
@@ -315,9 +315,9 @@ public class RunService {
         try {
             if (!recipients.isEmpty()) {
                 emailSender.sendToMany(recipients.toArray(String[]::new),
-                    "Inscrição paga - Mercado Solidário Rum " + registration.getModality(),
+                    "Inscrição paga - Mercado Solidário Run " + registration.getModality(),
                     """
-                    Inscrição confirmada na corrida Mercado Solidário Rum.
+                    Inscrição confirmada na corrida Mercado Solidário Run.
 
                     Nome: %s
                     Modalidade: %s
@@ -337,14 +337,14 @@ public class RunService {
                             ? " (ref. " + registration.getPaymentRef() + ")" : ""));
             }
             if (registration.getEmail() != null && !registration.getEmail().isBlank()) {
-                String verifyUrl = frontendBaseUrl + "/rum/verificar/" + registration.getCheckinCode();
+                String verifyUrl = frontendBaseUrl + "/run/verificar/" + registration.getCheckinCode();
                 byte[] qrPng = pixPayloadGenerator.generateQrCodePng(verifyUrl);
                 emailSender.sendWithAttachment(registration.getEmail(),
-                    "Inscrição confirmada - Mercado Solidário Rum",
+                    "Inscrição confirmada - Mercado Solidário Run",
                     """
                     Olá, %s!
 
-                    Sua inscrição na corrida Mercado Solidário Rum (%s) está CONFIRMADA.
+                    Sua inscrição na corrida Mercado Solidário Run (%s) está CONFIRMADA.
                     Obrigado por correr com a gente — sua inscrição se transforma em dignidade.
 
                     Número da inscrição: %d

@@ -26,7 +26,7 @@ public class RunRegistration {
     @Column(name = "phone")
     private String phone;
 
-    // '3KM' | '6KM'
+    // '3KM' | '7KM'
     @Column(name = "modality", nullable = false, length = 10)
     private String modality;
 

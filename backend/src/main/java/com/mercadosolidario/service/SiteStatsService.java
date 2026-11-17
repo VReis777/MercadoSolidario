@@ -18,8 +18,8 @@ public class SiteStatsService {
 
     /** Somente rotas publicas conhecidas entram na contagem. */
     private static final Set<String> PUBLIC_PATHS = Set.of(
-        "/", "/nossahistoria", "/conheca", "/doacao", "/rum", "/sou-empresa",
-        "/rum/verificar");
+        "/", "/nossahistoria", "/conheca", "/doacao", "/run", "/sou-empresa",
+        "/run/verificar", "/rum/verificar");
 
     private final SitePageViewRepository repository;
 
@@ -59,8 +59,10 @@ public class SiteStatsService {
         if (path.isEmpty()) {
             path = "/";
         }
-        // /rum/verificar/ABC vira /rum/verificar (nao vaza codigo na estatistica)
-        if (path.startsWith("/rum/verificar/")) {
+        // /run/verificar/ABC (ou /rum/verificar/ABC antigo) vira /run/verificar
+        if (path.startsWith("/run/verificar/")) {
+            path = "/run/verificar";
+        } else if (path.startsWith("/rum/verificar/")) {
             path = "/rum/verificar";
         }
         return PUBLIC_PATHS.contains(path) ? path : null;

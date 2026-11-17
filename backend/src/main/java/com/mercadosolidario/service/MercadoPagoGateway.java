@@ -51,7 +51,7 @@ public class MercadoPagoGateway implements RunPaymentGateway {
         try {
             String body = mapper.writeValueAsString(Map.of(
                 "transaction_amount", registration.totalCharged(),
-                "description", "Inscrição Mercado Solidário Rum " + registration.getModality(),
+                "description", "Inscrição Mercado Solidário Run " + registration.getModality(),
                 "payment_method_id", "pix",
                 "external_reference", registration.getId().toString(),
                 "notification_url", notificationUrl,
@@ -76,10 +76,10 @@ public class MercadoPagoGateway implements RunPaymentGateway {
     @Override
     public Optional<Charge> createCardCheckout(RunRegistration registration) {
         try {
-            String inscriptionUrl = frontendBaseUrl + "/rum/inscricao/" + registration.getId();
+            String inscriptionUrl = frontendBaseUrl + "/run/inscricao/" + registration.getId();
             String body = mapper.writeValueAsString(Map.of(
                 "items", java.util.List.of(Map.of(
-                    "title", "Inscrição Mercado Solidário Rum " + registration.getModality(),
+                    "title", "Inscrição Mercado Solidário Run " + registration.getModality(),
                     "quantity", 1,
                     "currency_id", "BRL",
                     "unit_price", registration.totalCharged())),
