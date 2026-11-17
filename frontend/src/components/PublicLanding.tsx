@@ -15,7 +15,6 @@ import {
 import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder'
 import BusinessIcon from '@mui/icons-material/Business'
 import VolunteerActivismIcon from '@mui/icons-material/VolunteerActivism'
-import DirectionsRunIcon from '@mui/icons-material/DirectionsRun'
 // Reabre em dezembro com o botão QUERO SER BENEFICIADO:
 // import HomeIcon from '@mui/icons-material/Home'
 
@@ -161,23 +160,21 @@ function PublicLanding({ onPrimaryAction, onBenefitRequest, extraActions }: Publ
             >
               CONHEÇA UM POUCO
             </Button>
-            <Button
-              variant="contained"
-              size="large"
-              startIcon={<DirectionsRunIcon />}
+            <Box
+              component="img"
+              src="/botao-run.png"
+              alt="Corra com a gente — Mercado Solidário Run"
               onClick={() => handleAction('run')}
               sx={{
-                minWidth: { xs: '100%', sm: 200 },
-                bgcolor: '#19B8D2',
-                color: '#1B2A6B',
-                fontWeight: 800,
-                boxShadow: '0 4px 14px rgba(0,0,0,0.35)',
-                '&:hover': { bgcolor: '#3ec9e0', transform: 'translateY(-1px)' },
-                transition: 'all 0.15s ease',
+                height: { xs: 84, sm: 96 },
+                width: 'auto',
+                cursor: 'pointer',
+                borderRadius: 2,
+                boxShadow: '0 10px 30px rgba(25,184,210,.55)',
+                '&:hover': { transform: 'translateY(-3px) scale(1.04)', filter: 'brightness(1.08)' },
+                transition: 'all 0.2s ease',
               }}
-            >
-              CORRA COM A GENTE
-            </Button>
+            />
             {/* Reabre em dezembro: cadastro público de beneficiários
             <Button
               variant="text"

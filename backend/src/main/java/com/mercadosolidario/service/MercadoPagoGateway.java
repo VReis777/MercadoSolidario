@@ -76,7 +76,8 @@ public class MercadoPagoGateway implements RunPaymentGateway {
     @Override
     public Optional<Charge> createCardCheckout(RunRegistration registration) {
         try {
-            String inscriptionUrl = frontendBaseUrl + "/run/inscricao/" + registration.getId();
+            String inscriptionUrl = frontendBaseUrl + "/run/inscricao/" + registration.getId()
+                + "?key=" + registration.getAccessKey();
             String body = mapper.writeValueAsString(Map.of(
                 "items", java.util.List.of(Map.of(
                     "title", "Inscrição Mercado Solidário Run " + registration.getModality(),
