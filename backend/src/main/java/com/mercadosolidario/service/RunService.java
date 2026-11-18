@@ -204,7 +204,7 @@ public class RunService {
             if (approved) {
                 markPaid(registration,
                     paymentGateway.approvedNetReceivedForReference(registration.getId().toString())
-                        .orElse(null));
+                        .orElseGet(() -> estimateNet(registration)));
             }
         }
         return toStatus(registration);
@@ -235,7 +235,8 @@ public class RunService {
                     .filter(r -> "PENDENTE".equals(r.getStatus()))
                     .ifPresent(r -> {
                         r.setPaymentRef(paymentId);
-                        markPaid(r, paymentGateway.approvedNetReceived(paymentId).orElse(null));
+                        markPaid(r, paymentGateway.approvedNetReceived(paymentId)
+                            .orElseGet(() -> estimateNet(r)));
                     });
             } catch (NumberFormatException ignored) {
                 // external_reference inesperada — ignora o webhook.
@@ -269,7 +270,7 @@ public class RunService {
                 && paymentGateway.hasApprovedPaymentFor(registration.getId().toString())) {
             markPaid(registration,
                 paymentGateway.approvedNetReceivedForReference(registration.getId().toString())
-                    .orElse(null));
+                    .orElseGet(() -> estimateNet(registration)));
         }
         return toStatus(registration);
     }
@@ -623,6 +624,19 @@ public class RunService {
                 log.warn("QR enviado ao inscrito mas cópia à equipe ({}) falhou.", copyTo);
             }
         }
+    }
+
+    /**
+     * Estimativa de líquido quando o gateway não informa o valor exato:
+     * PIX 0,99% · cartão 1x 4,98% (taxas do Mercado Pago informadas pela equipe).
+     */
+    private BigDecimal estimateNet(RunRegistration registration) {
+        boolean pix = "PIX".equals(registration.getPaymentMethod());
+        BigDecimal percent = new BigDecimal(pix ? "0.99" : "4.98");
+        BigDecimal fee = registration.totalCharged()
+            .multiply(percent.movePointLeft(2))
+            .setScale(2, java.math.RoundingMode.HALF_UP);
+        return registration.totalCharged().subtract(fee);
     }
 
     private long priceCents() {
