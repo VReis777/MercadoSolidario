@@ -415,6 +415,13 @@ function RumPage() {
                   Cartão
                 </Button>
               </Stack>
+              {method === 'CARTAO' && info && (
+                <Typography variant="body2" sx={{ color: '#44506B' }}>
+                  Inscrição {fmtBRL(info.amount + (Number(extraDonation) || 0))} + taxa de
+                  cartão <strong>R$ 7,00</strong> = total{' '}
+                  <strong>{fmtBRL(info.amount + (Number(extraDonation) || 0) + 7)}</strong>
+                </Typography>
+              )}
               {info && !info.cardEnabled && (
                 <Alert severity="info" sx={{ py: 0 }}>
                   Pagamento por cartão temporariamente indisponível — sua inscrição

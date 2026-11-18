@@ -88,7 +88,7 @@ public class MercadoPagoGateway implements RunPaymentGateway {
                 "title", "Inscrição Mercado Solidário Run " + registration.getModality(),
                 "quantity", 1,
                 "currency_id", "BRL",
-                "unit_price", registration.totalCharged())));
+                "unit_price", registration.amountDue())));
             body.put("external_reference", registration.getId().toString());
             putNotification(body);
             // Corrida: cartão somente à vista.

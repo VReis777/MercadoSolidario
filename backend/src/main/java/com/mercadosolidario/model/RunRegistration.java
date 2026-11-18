@@ -48,6 +48,14 @@ public class RunRegistration {
         return amount.add(extraDonation != null ? extraDonation : BigDecimal.ZERO);
     }
 
+    // Taxa de R$7,00 cobrada só no cartão para cobrir a taxa do gateway.
+    public static final BigDecimal CARD_SURCHARGE = new BigDecimal("7.00");
+
+    /** Valor final cobrado do inscrito: inscrição + extra + taxa de cartão (se aplicável). */
+    public BigDecimal amountDue() {
+        return totalCharged().add("CARTAO".equals(paymentMethod) ? CARD_SURCHARGE : BigDecimal.ZERO);
+    }
+
     // 'PIX' | 'CARTAO'
     @Column(name = "payment_method", nullable = false, length = 10)
     private String paymentMethod;

@@ -160,7 +160,7 @@ public class RunService {
         }
         return new RunRegistrationResponse(
             saved.getId(), saved.getAccessKey(), modality, saved.getAmount(), saved.getExtraDonation(),
-            saved.totalCharged(), saved.getStatus(),
+            saved.amountDue(), saved.getStatus(),
             method, pixCode, pixQrUri, checkoutUrl, saved.getCreatedAt());
     }
 
@@ -384,7 +384,7 @@ public class RunService {
                     Obrigado por correr com a gente!
                     Equipe Mercado Solidário
                     """.formatted(registration.getFullName(), registration.getModality(),
-                        registration.totalCharged().toPlainString(), charge.checkoutUrl()));
+                        registration.amountDue().toPlainString(), charge.checkoutUrl()));
             } catch (RuntimeException exception) {
                 log.warn("Link de pagamento gerado mas e-mail não enviado.");
             }
@@ -529,7 +529,7 @@ public class RunService {
     private AdminRunRegistrationResponse toAdmin(RunRegistration r) {
         return new AdminRunRegistrationResponse(
             r.getId(), r.getFullName(), r.getEmail(), r.getPhone(), r.getModality(),
-            r.getShirtSize(), r.getAmount(), r.getExtraDonation(), r.totalCharged(),
+            r.getShirtSize(), r.getAmount(), r.getExtraDonation(), r.amountDue(),
             r.getPaymentMethod(), r.getStatus(),
             r.getPaidAt(), r.getCreatedAt(),
             r.getKitDeliveredAt(), r.getKitDeliveredBy(), r.getBirthDate(), r.getCheckinCode(),
@@ -690,10 +690,10 @@ public class RunService {
     private BigDecimal estimateNet(RunRegistration registration) {
         boolean pix = "PIX".equals(registration.getPaymentMethod());
         BigDecimal percent = new BigDecimal(pix ? "0.99" : "4.98");
-        BigDecimal fee = registration.totalCharged()
+        BigDecimal fee = registration.amountDue()
             .multiply(percent.movePointLeft(2))
             .setScale(2, java.math.RoundingMode.HALF_UP);
-        return registration.totalCharged().subtract(fee);
+        return registration.amountDue().subtract(fee);
     }
 
     private long priceCents() {
