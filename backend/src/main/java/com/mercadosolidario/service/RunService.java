@@ -59,6 +59,9 @@ public class RunService {
     @Value("${app.frontend.base-url:http://localhost:5173}")
     private String frontendBaseUrl;
 
+    @Value("${app.mail.notify:${app.mail.from:}}")
+    private String notifyAddress;
+
     @Transactional(readOnly = true)
     public RunInfoResponse info() {
         BigDecimal amount = RunPaymentGateway.reais(priceCents());
@@ -527,9 +530,8 @@ public class RunService {
         }
         String verifyUrl = frontendBaseUrl + "/run/verificar/" + registration.getCheckinCode();
         byte[] qrPng = pixPayloadGenerator.generateQrCodePng(verifyUrl);
-        emailSender.sendWithAttachment(registration.getEmail(),
-            "Inscrição confirmada - Mercado Solidário Run",
-            """
+        String subject = "Inscrição confirmada - Mercado Solidário Run";
+        String body = """
             Olá, %s!
 
             Sua inscrição na corrida Mercado Solidário Run (%s) está CONFIRMADA.
@@ -544,9 +546,23 @@ public class RunService {
             """.formatted(registration.getFullName(), registration.getModality(),
                 registration.getId(),
                 registration.getShirtSize() != null ? registration.getShirtSize() : "não informado",
-                verifyUrl),
-            "qrcode-inscricao-" + registration.getId() + ".png",
-            qrPng, "image/png");
+                verifyUrl);
+        String attachmentName = "qrcode-inscricao-" + registration.getId() + ".png";
+        emailSender.sendWithAttachment(registration.getEmail(), subject, body,
+            attachmentName, qrPng, "image/png");
+        // Cópia de confirmação para a equipe: prova de que o QR foi gerado/enviado.
+        if (notifyAddress != null && !notifyAddress.isBlank()
+                && !notifyAddress.equalsIgnoreCase(registration.getEmail())) {
+            try {
+                emailSender.sendWithAttachment(notifyAddress,
+                    "[cópia] " + subject + " — " + registration.getFullName(),
+                    body + "\n\n---\nCópia de confirmação: este QR foi enviado para "
+                        + registration.getEmail() + ".",
+                    attachmentName, qrPng, "image/png");
+            } catch (RuntimeException exception) {
+                log.warn("QR enviado ao inscrito mas cópia à equipe falhou.");
+            }
+        }
     }
 
     private long priceCents() {
