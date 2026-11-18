@@ -175,17 +175,8 @@ public class MercadoPagoGateway implements RunPaymentGateway {
     @Override
     public Optional<String> approvedExternalReference(String paymentRef) {
         try {
-            HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(API + "/v1/payments/" + paymentRef))
-                .header("Authorization", "Bearer " + accessToken)
-                .timeout(Duration.ofSeconds(15))
-                .GET().build();
-            HttpResponse<String> response = http.send(request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
-            if (response.statusCode() != 200) {
-                return Optional.empty();
-            }
-            JsonNode node = mapper.readTree(response.body());
-            if (!"approved".equals(node.path("status").asText())) {
+            JsonNode node = getPayment(paymentRef);
+            if (node == null || !"approved".equals(node.path("status").asText())) {
                 return Optional.empty();
             }
             String external = node.path("external_reference").asText(null);
@@ -194,6 +185,68 @@ public class MercadoPagoGateway implements RunPaymentGateway {
             log.warn("Mercado Pago: falha ao consultar pagamento {}.", paymentRef);
             return Optional.empty();
         }
+    }
+
+    @Override
+    public Optional<BigDecimal> approvedNetReceived(String paymentId) {
+        try {
+            JsonNode node = getPayment(paymentId);
+            if (node == null || !"approved".equals(node.path("status").asText())) {
+                return Optional.empty();
+            }
+            return netReceived(node);
+        } catch (Exception exception) {
+            log.warn("Mercado Pago: falha ao consultar líquido do pagamento {}.", paymentId);
+            return Optional.empty();
+        }
+    }
+
+    @Override
+    public Optional<BigDecimal> approvedNetReceivedForReference(String externalReference) {
+        try {
+            String url = API + "/v1/payments/search?external_reference="
+                + URLEncoder.encode(externalReference, StandardCharsets.UTF_8) + "&limit=10";
+            HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(url))
+                .header("Authorization", "Bearer " + accessToken)
+                .timeout(Duration.ofSeconds(15))
+                .GET().build();
+            HttpResponse<String> response = http.send(request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+            if (response.statusCode() != 200) {
+                return Optional.empty();
+            }
+            for (JsonNode payment : mapper.readTree(response.body()).path("results")) {
+                if ("approved".equals(payment.path("status").asText())
+                        && externalReference.equals(payment.path("external_reference").asText(null))) {
+                    return netReceived(payment);
+                }
+            }
+            return Optional.empty();
+        } catch (Exception exception) {
+            log.warn("Mercado Pago: falha ao buscar líquido por referência {}.", externalReference);
+            return Optional.empty();
+        }
+    }
+
+    private JsonNode getPayment(String paymentId) throws Exception {
+        HttpRequest request = HttpRequest.newBuilder()
+            .uri(URI.create(API + "/v1/payments/" + paymentId))
+            .header("Authorization", "Bearer " + accessToken)
+            .timeout(Duration.ofSeconds(15))
+            .GET().build();
+        HttpResponse<String> response = http.send(request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+        if (response.statusCode() != 200) {
+            return null;
+        }
+        return mapper.readTree(response.body());
+    }
+
+    private Optional<BigDecimal> netReceived(JsonNode payment) {
+        JsonNode net = payment.path("transaction_details").path("net_received_amount");
+        if (net.isNumber()) {
+            return Optional.of(net.decimalValue());
+        }
+        return Optional.empty();
     }
 
     /**

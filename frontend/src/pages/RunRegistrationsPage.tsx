@@ -81,7 +81,7 @@ function RunRegistrationsPage() {
   const totals = useMemo(() => {
     const paid = registrations.filter((r) => r.status === 'PAGA')
     const pending = registrations.filter((r) => r.status === 'PENDENTE')
-    const raised = paid.reduce((sum, r) => sum + (r.totalCharged ?? r.amount), 0)
+    const raised = paid.reduce((sum, r) => sum + (r.netAmount ?? r.totalCharged ?? r.amount), 0)
     const by3km = paid.filter((r) => r.modality === '3KM').length
     const by7km = paid.filter((r) => r.modality === '7KM').length
     return { paid: paid.length, pending: pending.length, raised, by3km, by7km }
@@ -276,7 +276,7 @@ function RunRegistrationsPage() {
               </Grid>
               <Grid item xs={6} sm={3}>
                 <Card><CardContent>
-                  <Typography color="text.secondary">Arrecadado</Typography>
+                  <Typography color="text.secondary">Arrecadado (líquido)</Typography>
                   <Typography variant="h4" fontWeight={800} color="primary.main">{fmtBRL(totals.raised)}</Typography>
                 </CardContent></Card>
               </Grid>
@@ -320,6 +320,8 @@ function RunRegistrationsPage() {
                           {r.extraDonation ? ` (${fmtBRL(r.amount)} + ${fmtBRL(r.extraDonation)} extra)` : ''}
                           {' · '}{r.paymentMethod}
                           {r.shirtSize ? ` · camisa ${r.shirtSize}` : ''}
+                          {r.status === 'PAGA' && r.netAmount != null && r.netAmount !== (r.totalCharged ?? r.amount)
+                            ? ` · líq. ${fmtBRL(r.netAmount)}` : ''}
                         </Typography>
                         <Typography variant="body2" color="text.secondary">
                           {r.email || '—'}{r.phone ? ` · ${r.phone}` : ''}

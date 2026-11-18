@@ -73,6 +73,7 @@ export interface AdminRunRegistration {
   birthDate: string | null
   checkinCode: string | null
   paymentRef: string | null
+  netAmount: number | null
 }
 
 const publicApi = axios.create({ baseURL: import.meta.env.VITE_API_URL })

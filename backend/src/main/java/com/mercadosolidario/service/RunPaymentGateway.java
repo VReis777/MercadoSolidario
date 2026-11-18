@@ -40,6 +40,22 @@ public interface RunPaymentGateway {
      */
     boolean hasApprovedPaymentFor(String externalReference);
 
+    /**
+     * Valor líquido recebido (após taxas) de um pagamento aprovado,
+     * consultado pelo id do pagamento. Vazio se indisponível.
+     */
+    default Optional<BigDecimal> approvedNetReceived(String paymentId) {
+        return Optional.empty();
+    }
+
+    /**
+     * Valor líquido recebido do pagamento aprovado com esta
+     * external_reference (funciona para checkout e PIX do gateway).
+     */
+    default Optional<BigDecimal> approvedNetReceivedForReference(String externalReference) {
+        return Optional.empty();
+    }
+
     record Charge(String paymentRef, String pixCode, String checkoutUrl) {}
 
     static BigDecimal reais(long cents) {

@@ -202,7 +202,9 @@ public class RunService {
                 approved = paymentGateway.hasApprovedPaymentFor(registration.getId().toString());
             }
             if (approved) {
-                markPaid(registration);
+                markPaid(registration,
+                    paymentGateway.approvedNetReceivedForReference(registration.getId().toString())
+                        .orElse(null));
             }
         }
         return toStatus(registration);
@@ -233,7 +235,7 @@ public class RunService {
                     .filter(r -> "PENDENTE".equals(r.getStatus()))
                     .ifPresent(r -> {
                         r.setPaymentRef(paymentId);
-                        markPaid(r);
+                        markPaid(r, paymentGateway.approvedNetReceived(paymentId).orElse(null));
                     });
             } catch (NumberFormatException ignored) {
                 // external_reference inesperada — ignora o webhook.
@@ -250,7 +252,8 @@ public class RunService {
             // Idempotente: não gera doação duplicada na arrecadação.
             return toStatus(registration);
         }
-        markPaid(registration);
+        // PIX manual/comprovante: sem taxa de gateway — líquido = bruto.
+        markPaid(registration, registration.totalCharged());
         return toStatus(registration);
     }
 
@@ -264,7 +267,9 @@ public class RunService {
             .orElseThrow(() -> new ResourceNotFoundException("Inscrição não encontrada"));
         if ("PENDENTE".equals(registration.getStatus()) && paymentGateway.isEnabled()
                 && paymentGateway.hasApprovedPaymentFor(registration.getId().toString())) {
-            markPaid(registration);
+            markPaid(registration,
+                paymentGateway.approvedNetReceivedForReference(registration.getId().toString())
+                    .orElse(null));
         }
         return toStatus(registration);
     }
@@ -487,13 +492,14 @@ public class RunService {
                 r.getPaymentMethod(), r.getStatus(),
                 r.getPaidAt(), r.getCreatedAt(),
                 r.getKitDeliveredAt(), r.getKitDeliveredBy(), r.getBirthDate(), r.getCheckinCode(),
-                r.getPaymentRef()))
+                r.getPaymentRef(), r.getNetAmount()))
             .toList();
     }
 
-    private void markPaid(RunRegistration registration) {
+    private void markPaid(RunRegistration registration, BigDecimal netAmount) {
         registration.setStatus("PAGA");
         registration.setPaidAt(LocalDateTime.now());
+        registration.setNetAmount(netAmount);
         if (registration.getCheckinCode() == null) {
             registration.setCheckinCode(UUID.randomUUID().toString().replace("-", ""));
         }

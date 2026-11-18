@@ -63,6 +63,10 @@ public class RunRegistration {
     @Column(name = "paid_at")
     private LocalDateTime paidAt;
 
+    // Valor líquido efetivamente recebido (após taxas do gateway); nulo = usar totalCharged.
+    @Column(name = "net_amount", precision = 12, scale = 2)
+    private BigDecimal netAmount;
+
     // Código único do QR de verificação (retirada do kit).
     @Column(name = "checkin_code", length = 40, unique = true)
     private String checkinCode;
