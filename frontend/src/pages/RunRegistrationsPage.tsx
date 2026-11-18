@@ -147,6 +147,18 @@ function RunRegistrationsPage() {
     }
   }
 
+
+  const whatsappLink = (r: AdminRunRegistration): string | null => {
+    const digits = (r.phone ?? '').replace(/\D/g, '')
+    if (!digits || !r.checkinCode) return null
+    const number = digits.startsWith('55') ? digits : `55${digits}`
+    const firstName = r.fullName.trim().split(' ')[0]
+    const verifyUrl = `${window.location.origin}/run/verificar/${r.checkinCode}`
+    const msg = `Olá, ${firstName}! Sua inscrição no Mercado Solidário Run foi CONFIRMADA. ` +
+      `Seu QR code de retirada do kit (camisa + medalha) está aqui: ${verifyUrl} ` +
+      `— apresente na retirada dia 13/12. Obrigado por correr com a gente!`
+    return `https://wa.me/${number}?text=${encodeURIComponent(msg)}`
+  }
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: 'background.default', pb: 5 }}>
       <Box sx={{ bgcolor: 'primary.main', color: 'white' }}>
@@ -265,6 +277,12 @@ function RunRegistrationsPage() {
                               Excluir
                             </Button>
                           </Stack>
+                        )}
+                        {r.status === 'PAGA' && whatsappLink(r) && (
+                          <Button size="small" variant="outlined" color="success" sx={{ mt: 1 }}
+                            component="a" href={whatsappLink(r) ?? '#'} target="_blank" rel="noreferrer">
+                            Enviar QR no WhatsApp
+                          </Button>
                         )}
                       </CardContent>
                     </Card>

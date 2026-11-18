@@ -93,6 +93,7 @@ public class RunDtos {
         LocalDateTime createdAt,
         LocalDateTime kitDeliveredAt,
         String kitDeliveredBy,
-        LocalDate birthDate
+        LocalDate birthDate,
+        String checkinCode
     ) {}
 }

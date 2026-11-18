@@ -71,6 +71,7 @@ export interface AdminRunRegistration {
   kitDeliveredAt: string | null
   kitDeliveredBy: string | null
   birthDate: string | null
+  checkinCode: string | null
 }
 
 const publicApi = axios.create({ baseURL: import.meta.env.VITE_API_URL })
