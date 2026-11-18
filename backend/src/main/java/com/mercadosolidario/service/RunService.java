@@ -85,6 +85,9 @@ public class RunService {
             throw new IllegalArgumentException("Pagamento em cartão estará disponível em breve — use PIX.");
         }
 
+        if (trimToNull(request.phone()) == null) {
+            throw new IllegalArgumentException("Informe telefone/WhatsApp — é por ele que enviaremos os avisos da retirada do kit.");
+        }
         LocalDate birthDate = request.birthDate();
         LocalDate today = LocalDate.now();
         if (birthDate == null || birthDate.isAfter(today.minusYears(18)) || birthDate.isAfter(today)) {

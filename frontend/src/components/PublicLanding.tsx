@@ -145,7 +145,7 @@ function PublicLanding({ onPrimaryAction, onBenefitRequest, extraActions }: Publ
               alt="Sou empresa — Mercado Solidário"
               onClick={() => handleAction('company')}
               sx={{
-                height: { xs: 68, sm: 78 },
+                height: { xs: 71, sm: 81 },
                 width: 'auto',
                 cursor: 'pointer',
                 borderRadius: 2,

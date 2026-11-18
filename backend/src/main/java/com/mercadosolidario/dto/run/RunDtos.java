@@ -30,7 +30,7 @@ public class RunDtos {
     public record RunRegisterRequest(
         @NotBlank @Size(max = 255) String fullName,
         @NotBlank @Email @Size(max = 255) String email,
-        @Size(max = 60) String phone,
+        @NotBlank @Size(max = 60) String phone,
         @NotNull LocalDate birthDate,
         @NotBlank String modality,
         @Size(max = 10) String shirtSize,
