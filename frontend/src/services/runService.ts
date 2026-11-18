@@ -117,6 +117,9 @@ const runService = {
     const { data } = await api.post<RunStatus>(`/rum/registrations/${id}/cancel`)
     return data
   },
+  remove: async (id: number): Promise<void> => {
+    await api.delete(`/rum/registrations/${id}`)
+  },
 }
 
 export default runService

@@ -253,6 +253,19 @@ public class RunService {
         return toStatus(registrationRepository.save(registration));
     }
 
+    /** Exclui inscrição não paga (PENDENTE ou CANCELADA) — ex.: testes e tentativas duplicadas. */
+    @Transactional
+    public void delete(Long id) {
+        RunRegistration registration = registrationRepository.findByIdForUpdate(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Inscrição não encontrada"));
+        if ("PAGA".equals(registration.getStatus())) {
+            throw new ConflictException("Inscrição paga não pode ser excluída — tem registro financeiro vinculado.");
+        }
+        audit("RUN_REGISTRATION_DELETED", registration.getId(),
+            "modality=" + registration.getModality() + ",name=" + registration.getFullName());
+        registrationRepository.delete(registration);
+    }
+
     /** Verificação pública pelo QR: dados do inscrito + status + QR imagem. */
     @Transactional(readOnly = true)
     public RunVerifyResponse verify(String code) {

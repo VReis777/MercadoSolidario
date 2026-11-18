@@ -115,6 +115,38 @@ function RunRegistrationsPage() {
     }
   }
 
+  const remove = async (id: number, name: string) => {
+    if (!window.confirm(`Excluir a inscrição de ${name}? Isso não pode ser desfeito.`)) return
+    setActing(id)
+    setError('')
+    try {
+      await runService.remove(id)
+      setMessage('Inscrição excluída.')
+      await load()
+    } catch (removeError) {
+      setError(getApiErrorMessage(removeError, 'Não foi possível excluir.'))
+    } finally {
+      setActing(null)
+    }
+  }
+
+  const copyPendingContacts = async () => {
+    const pending = registrations.filter((r) => r.status === 'PENDENTE')
+    if (pending.length === 0) {
+      setError('Não há inscrições pendentes para contatar.')
+      return
+    }
+    const text = pending.map((r) =>
+      `${r.fullName} — ${r.phone ?? r.email ?? 'sem contato'}${r.email && r.phone ? ` (${r.email})` : ''} — inscrição #${r.id} (${r.modality === '3KM' ? '3 km caminhada' : '7 km corrida'})`
+    ).join('\n')
+    try {
+      await navigator.clipboard.writeText(text)
+      setMessage(`${pending.length} contato(s) de inscrições pendentes copiado(s) — cole no WhatsApp para chamar a equipe.`)
+    } catch {
+      setError('Não foi possível copiar — selecione e copie manualmente.')
+    }
+  }
+
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: 'background.default', pb: 5 }}>
       <Box sx={{ bgcolor: 'primary.main', color: 'white' }}>
@@ -177,6 +209,7 @@ function RunRegistrationsPage() {
                 <MenuItem value="PAGA">Paga</MenuItem>
                 <MenuItem value="CANCELADA">Cancelada</MenuItem>
               </TextField>
+              <Button variant="outlined" onClick={() => void copyPendingContacts()}>Copiar contatos pendentes</Button>
               <Button onClick={() => void load()}>Atualizar</Button>
             </Stack>
 
@@ -213,15 +246,23 @@ function RunRegistrationsPage() {
                             {r.kitDeliveredBy ? ` — entregue por ${r.kitDeliveredBy}` : ''}
                           </Typography>
                         )}
-                        {isAdmin && r.status === 'PENDENTE' && (
+                        {isAdmin && (r.status === 'PENDENTE' || r.status === 'CANCELADA') && (
                           <Stack direction="row" gap={1} sx={{ mt: 1 }}>
-                            <Button size="small" variant="contained" color="success"
-                              disabled={acting === r.id} onClick={() => void confirm(r.id)}>
-                              Confirmar pagamento
-                            </Button>
-                            <Button size="small" variant="outlined" color="error"
-                              disabled={acting === r.id} onClick={() => void cancel(r.id)}>
-                              Cancelar
+                            {r.status === 'PENDENTE' && (
+                              <>
+                                <Button size="small" variant="contained" color="success"
+                                  disabled={acting === r.id} onClick={() => void confirm(r.id)}>
+                                  Confirmar pagamento
+                                </Button>
+                                <Button size="small" variant="outlined" color="error"
+                                  disabled={acting === r.id} onClick={() => void cancel(r.id)}>
+                                  Cancelar
+                                </Button>
+                              </>
+                            )}
+                            <Button size="small" variant="text" color="error"
+                              disabled={acting === r.id} onClick={() => void remove(r.id, r.fullName)}>
+                              Excluir
                             </Button>
                           </Stack>
                         )}
