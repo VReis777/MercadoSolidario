@@ -169,14 +169,28 @@ public class RunService {
             .orElse("");
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public RunStatusResponse status(Long id, String key) {
-        RunRegistration registration = registrationRepository.findById(id)
+        RunRegistration registration = registrationRepository.findByIdForUpdate(id)
             .orElseThrow(() -> new ResourceNotFoundException("Inscrição não encontrada"));
         // Sem a chave correta a inscrição "não existe": impede enumeração por id.
         if (key == null || registration.getAccessKey() == null
                 || !registration.getAccessKey().equals(key)) {
             throw new ResourceNotFoundException("Inscrição não encontrada");
+        }
+        // Confirmação sob demanda: se o webhook do gateway não chegou,
+        // consultamos o Mercado Pago agora — a tela de retorno faz polling.
+        if ("PENDENTE".equals(registration.getStatus()) && paymentGateway.isEnabled()) {
+            boolean approved = registration.getPaymentRef() != null
+                && paymentGateway.approvedExternalReference(registration.getPaymentRef())
+                    .map(externalRef -> registration.getId().toString().equals(externalRef))
+                    .orElse(false);
+            if (!approved) {
+                approved = paymentGateway.hasApprovedPaymentFor(registration.getId().toString());
+            }
+            if (approved) {
+                markPaid(registration);
+            }
         }
         return toStatus(registration);
     }

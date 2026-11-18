@@ -33,6 +33,13 @@ public interface RunPaymentGateway {
      */
     Optional<String> approvedExternalReference(String paymentRef);
 
+    /**
+     * true se já existe pagamento aprovado no gateway com esta
+     * external_reference — usado na confirmação sob demanda quando
+     * o webhook não chega.
+     */
+    boolean hasApprovedPaymentFor(String externalReference);
+
     record Charge(String paymentRef, String pixCode, String checkoutUrl) {}
 
     static BigDecimal reais(long cents) {
