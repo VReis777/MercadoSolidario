@@ -211,6 +211,15 @@ public class MercadoPagoGateway implements RunPaymentGateway {
         return approvedPaymentForReference(externalReference).map(this::paymentMethodOf);
     }
 
+    @Override
+    public Optional<ApprovedPaymentInfo> approvedPaymentInfoForReference(String externalReference) {
+        return approvedPaymentForReference(externalReference).map(payment ->
+            new ApprovedPaymentInfo(
+                payment.path("id").asText(null),
+                netReceived(payment).orElse(null),
+                paymentMethodOf(payment)));
+    }
+
     private Optional<JsonNode> approvedPaymentForReference(String externalReference) {
         try {
             String url = API + "/v1/payments/search?external_reference="

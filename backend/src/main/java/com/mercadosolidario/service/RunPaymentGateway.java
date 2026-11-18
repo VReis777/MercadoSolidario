@@ -65,6 +65,18 @@ public interface RunPaymentGateway {
         return Optional.empty();
     }
 
+    /** Pagamento aprovado encontrado pelo external_reference, com dados para reatribuição. */
+    record ApprovedPaymentInfo(String paymentId, BigDecimal netAmount, String paymentMethod) {}
+
+    /**
+     * Detalhes do pagamento aprovado com esta external_reference —
+     * usado para vincular um pagamento à inscrição correta quando a
+     * pessoa pagou pelo link/código de outra inscrição.
+     */
+    default Optional<ApprovedPaymentInfo> approvedPaymentInfoForReference(String externalReference) {
+        return Optional.empty();
+    }
+
     record Charge(String paymentRef, String pixCode, String checkoutUrl) {}
 
     static BigDecimal reais(long cents) {

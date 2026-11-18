@@ -273,6 +273,43 @@ public class RunService {
         return toAdmin(registrationRepository.save(registration));
     }
 
+    /**
+     * Vincula à inscrição pendente o pagamento aprovado que ficou preso a
+     * OUTRA inscrição (ex.: a pessoa pagou pelo link/código de outra).
+     * A inscrição de origem precisa estar estornada/cancelada antes.
+     */
+    @Transactional
+    public AdminRunRegistrationResponse claimPayment(Long id, Long fromId) {
+        RunRegistration target = registrationRepository.findByIdForUpdate(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Inscrição não encontrada"));
+        if (!"PENDENTE".equals(target.getStatus())) {
+            throw new ConflictException("Só é possível vincular pagamento a inscrição pendente.");
+        }
+        RunRegistration source = registrationRepository.findByIdForUpdate(fromId)
+            .orElseThrow(() -> new ResourceNotFoundException("Inscrição de origem não encontrada"));
+        if ("PAGA".equals(source.getStatus())) {
+            throw new ConflictException("Estorne o pagamento da inscrição de origem antes de vincular.");
+        }
+        if (!paymentGateway.isEnabled()) {
+            throw new ConflictException("Gateway de pagamento indisponível no momento.");
+        }
+        RunPaymentGateway.ApprovedPaymentInfo info = paymentGateway
+            .approvedPaymentInfoForReference(source.getId().toString())
+            .orElseThrow(() -> new ConflictException(
+                "Nenhum pagamento aprovado encontrado no Mercado Pago para a inscrição #" + fromId + "."));
+        target.setPaymentRef(info.paymentId());
+        if (info.paymentMethod() != null && !info.paymentMethod().isBlank()) {
+            target.setPaymentMethod(info.paymentMethod());
+        }
+        source.setPaymentRef(null);
+        registrationRepository.save(source);
+        audit("RUN_PAYMENT_CLAIMED", target.getId(),
+            "from=" + fromId + ",paymentRef=" + info.paymentId()
+                + ",method=" + target.getPaymentMethod());
+        markPaid(target, info.netAmount() != null ? info.netAmount() : estimateNet(target));
+        return toAdmin(registrationRepository.save(target));
+    }
+
     /** Envia e-mail de retentativa para inscrito pendente (instabilidade no pagamento). */
     @Transactional(readOnly = true)
     public void sendRetryEmail(Long id) {

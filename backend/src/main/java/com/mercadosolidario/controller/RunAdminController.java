@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -68,6 +69,13 @@ public class RunAdminController {
     @PreAuthorize("hasRole('ADMIN')")
     public AdminRunRegistrationResponse syncPayment(@PathVariable Long id) {
         return runService.syncPayment(id);
+    }
+
+    @PostMapping("/{id}/claim-payment")
+    @PreAuthorize("hasRole('ADMIN')")
+    public AdminRunRegistrationResponse claimPayment(@PathVariable Long id,
+                                                     @RequestBody java.util.Map<String, Long> body) {
+        return runService.claimPayment(id, body.get("fromId"));
     }
 
     @PostMapping("/{id}/resend-qr-email")

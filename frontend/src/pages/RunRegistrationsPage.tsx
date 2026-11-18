@@ -192,6 +192,29 @@ function RunRegistrationsPage() {
     }
   }
 
+  const claimPayment = async (id: number) => {
+    const raw = window.prompt(
+      'ID da inscrição que gerou o link/pagamento usado (ex.: 32). ' +
+      'A inscrição de origem precisa estar estornada ou cancelada.')
+    if (!raw) return
+    const fromId = Number(raw.replace(/\D/g, ''))
+    if (!fromId) {
+      setError('Informe um número de inscrição válido.')
+      return
+    }
+    setActing(id)
+    setError('')
+    try {
+      const reg = await runService.claimPayment(id, fromId)
+      setMessage(`Pagamento da inscrição #${fromId} vinculado — ${reg.fullName} confirmada como ${reg.paymentMethod === 'PIX' ? 'PIX' : 'cartão'}.`)
+      await load()
+    } catch (claimError) {
+      setError(getApiErrorMessage(claimError, 'Não foi possível vincular o pagamento.'))
+    } finally {
+      setActing(null)
+    }
+  }
+
   const remove = async (id: number, name: string) => {
     if (!window.confirm(`Excluir a inscrição de ${name}? Isso não pode ser desfeito.`)) return
     setActing(id)
@@ -361,6 +384,10 @@ function RunRegistrationsPage() {
                                 <Button size="small" variant="outlined" color="secondary"
                                   disabled={acting === r.id} onClick={() => void paymentLink(r.id)}>
                                   Link de pagamento
+                                </Button>
+                                <Button size="small" variant="outlined" color="warning"
+                                  disabled={acting === r.id} onClick={() => void claimPayment(r.id)}>
+                                  Vincular pagto. MP
                                 </Button>
                               </>
                             )}

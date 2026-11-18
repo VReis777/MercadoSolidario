@@ -100,6 +100,7 @@ public class SecurityConfig {
                     "/api/rum/registrations/*/payment-link",
                     "/api/rum/registrations/*/sync-payment",
                     "/api/rum/registrations/*/revert-payment",
+                    "/api/rum/registrations/*/claim-payment",
                     "/api/rum/registrations/*/resend-qr-email")
                     .hasRole("ADMIN")
                 .requestMatchers(HttpMethod.DELETE, "/api/rum/registrations/*")
