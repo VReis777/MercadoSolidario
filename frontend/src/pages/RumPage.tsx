@@ -184,7 +184,7 @@ function RumPage() {
         </Typography>
         <Typography sx={{ color: '#EAF0FF', mt: 1, fontSize: '1.1rem' }}>
           <strong>13 de dezembro</strong> · Kit do atleta: camisa + medalha ·{' '}
-          <strong>{info ? fmtBRL(info.amount) : 'R$ 100,00'}</strong> por inscrição
+          <strong>{info ? fmtBRL(info.amount) : 'R$ 100,00'}</strong> por inscrição · <strong>A partir de 18 anos</strong>
         </Typography>
         <Typography sx={{ color: '#EAF0FF', mt: 0.5 }}>
           100% da arrecadação revertida para o Mercado Solidário.
@@ -363,6 +363,9 @@ function RumPage() {
                   Inscrição: <strong>{fmtBRL(info.amount)}</strong> — inclui camisa e medalha.
                 </Typography>
               )}
+              <Alert severity="warning" sx={{ py: 0 }}>
+                Inscrições exclusivas para <strong>maiores de 18 anos</strong> — informe a data de nascimento.
+              </Alert>
               <TextField required fullWidth label="Nome completo" value={name}
                 onChange={(e) => setName(e.target.value)} />
               <TextField required fullWidth label="E-mail" type="email" value={email}
