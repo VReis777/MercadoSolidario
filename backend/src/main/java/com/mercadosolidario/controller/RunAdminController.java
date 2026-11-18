@@ -58,6 +58,12 @@ public class RunAdminController {
         return java.util.Map.of("checkoutUrl", runService.paymentLink(id));
     }
 
+    @PostMapping("/{id}/sync-payment")
+    @PreAuthorize("hasRole('ADMIN')")
+    public RunStatusResponse syncPayment(@PathVariable Long id) {
+        return runService.syncPayment(id);
+    }
+
     @PostMapping("/{id}/resend-qr-email")
     @PreAuthorize("hasRole('ADMIN')")
     public void resendQrEmail(@PathVariable Long id) {

@@ -97,7 +97,9 @@ public class SecurityConfig {
                     "/api/rum/registrations/*/confirm-payment",
                     "/api/rum/registrations/*/cancel",
                     "/api/rum/registrations/*/send-retry-email",
-                    "/api/rum/registrations/*/payment-link")
+                    "/api/rum/registrations/*/payment-link",
+                    "/api/rum/registrations/*/sync-payment",
+                    "/api/rum/registrations/*/resend-qr-email")
                     .hasRole("ADMIN")
                 .requestMatchers(HttpMethod.DELETE, "/api/rum/registrations/*")
                     .hasRole("ADMIN")

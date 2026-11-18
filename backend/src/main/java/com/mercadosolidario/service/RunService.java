@@ -254,6 +254,21 @@ public class RunService {
         return toStatus(registration);
     }
 
+    /**
+     * Sincroniza com o Mercado Pago: se já existe pagamento aprovado com a
+     * referência da inscrição, confirma na hora (cobre webhook atrasado/ausente).
+     */
+    @Transactional
+    public RunStatusResponse syncPayment(Long id) {
+        RunRegistration registration = registrationRepository.findByIdForUpdate(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Inscrição não encontrada"));
+        if ("PENDENTE".equals(registration.getStatus()) && paymentGateway.isEnabled()
+                && paymentGateway.hasApprovedPaymentFor(registration.getId().toString())) {
+            markPaid(registration);
+        }
+        return toStatus(registration);
+    }
+
     /** Envia e-mail de retentativa para inscrito pendente (instabilidade no pagamento). */
     @Transactional(readOnly = true)
     public void sendRetryEmail(Long id) {

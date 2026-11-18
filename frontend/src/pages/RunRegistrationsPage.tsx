@@ -133,6 +133,22 @@ function RunRegistrationsPage() {
     }
   }
 
+  const syncPayment = async (id: number) => {
+    setActing(id)
+    setError('')
+    try {
+      const status = await runService.syncPayment(id)
+      setMessage(status.status === 'PAGA'
+        ? 'Pagamento encontrado no Mercado Pago — inscrição confirmada e QR enviado.'
+        : 'Nenhum pagamento aprovado encontrado no Mercado Pago para esta inscrição.')
+      await load()
+    } catch (syncError) {
+      setError(getApiErrorMessage(syncError, 'Não foi possível verificar o pagamento.'))
+    } finally {
+      setActing(null)
+    }
+  }
+
   const sendRetryEmail = async (id: number) => {
     setActing(id)
     setError('')
@@ -309,6 +325,10 @@ function RunRegistrationsPage() {
                                 <Button size="small" variant="contained" color="success"
                                   disabled={acting === r.id} onClick={() => void confirm(r.id)}>
                                   Confirmar pagamento
+                                </Button>
+                                <Button size="small" variant="outlined" color="primary"
+                                  disabled={acting === r.id} onClick={() => void syncPayment(r.id)}>
+                                  Verificar no MP
                                 </Button>
                                 <Button size="small" variant="outlined" color="error"
                                   disabled={acting === r.id} onClick={() => void cancel(r.id)}>
