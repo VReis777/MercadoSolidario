@@ -81,9 +81,6 @@ public class RunService {
         if (!method.equals("PIX") && !method.equals("CARTAO")) {
             throw new IllegalArgumentException("Forma de pagamento inválida — PIX ou cartão.");
         }
-        if (method.equals("CARTAO") && !paymentGateway.isEnabled()) {
-            throw new IllegalArgumentException("Pagamento em cartão estará disponível em breve — use PIX.");
-        }
 
         if (trimToNull(request.phone()) == null) {
             throw new IllegalArgumentException("Informe telefone/WhatsApp — é por ele que enviaremos os avisos da retirada do kit.");
@@ -273,6 +270,54 @@ public class RunService {
             Equipe Mercado Solidário
             """.formatted(registration.getFullName(), registration.getModality(), statusUrl, runUrl));
         audit("RUN_RETRY_EMAIL_SENT", registration.getId(), "to=" + registration.getEmail());
+    }
+
+    /**
+     * Gera link de checkout do gateway para inscrição pendente (ex.: cartão
+     * que estava indisponível na inscrição). Retorna a URL e também envia
+     * por e-mail ao inscrito quando houver e-mail cadastrado.
+     */
+    @Transactional
+    public String paymentLink(Long id) {
+        RunRegistration registration = registrationRepository.findByIdForUpdate(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Inscrição não encontrada"));
+        if (!"PENDENTE".equals(registration.getStatus())) {
+            throw new ConflictException("Só é possível gerar link para inscrição pendente.");
+        }
+        if (!paymentGateway.isEnabled()) {
+            throw new ConflictException("Gateway de pagamento indisponível no momento.");
+        }
+        RunPaymentGateway.Charge charge = paymentGateway.createCardCheckout(registration)
+            .orElseThrow(() -> new ConflictException("Não foi possível gerar o link de pagamento — tente novamente."));
+        registration.setPaymentRef(charge.paymentRef());
+        registrationRepository.save(registration);
+        audit("RUN_PAYMENT_LINK_CREATED", registration.getId(),
+            "method=" + registration.getPaymentMethod() + ",ref=" + charge.paymentRef());
+
+        if (registration.getEmail() != null && !registration.getEmail().isBlank()) {
+            try {
+                emailSender.sendToMany(new String[]{registration.getEmail()},
+                    "Link de pagamento — Mercado Solidário Run",
+                    """
+                    Olá, %s!
+
+                    Aqui está o link para concluir o pagamento da sua inscrição
+                    no Mercado Solidário Run (%s — R$ %s):
+
+                    %s
+
+                    Assim que o pagamento for aprovado, o QR code do seu kit
+                    chega automaticamente neste e-mail.
+
+                    Obrigado por correr com a gente!
+                    Equipe Mercado Solidário
+                    """.formatted(registration.getFullName(), registration.getModality(),
+                        registration.totalCharged().toPlainString(), charge.checkoutUrl()));
+            } catch (RuntimeException exception) {
+                log.warn("Link de pagamento gerado mas e-mail não enviado.");
+            }
+        }
+        return charge.checkoutUrl();
     }
 
     @Transactional

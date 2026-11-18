@@ -115,6 +115,24 @@ function RunRegistrationsPage() {
     }
   }
 
+  const paymentLink = async (id: number) => {
+    setActing(id)
+    setError('')
+    try {
+      const url = await runService.paymentLink(id)
+      try {
+        await navigator.clipboard.writeText(url)
+        setMessage('Link de pagamento gerado, copiado e enviado por e-mail ao inscrito — cole no WhatsApp se preferir.')
+      } catch {
+        setMessage(`Link de pagamento: ${url}`)
+      }
+    } catch (linkError) {
+      setError(getApiErrorMessage(linkError, 'Não foi possível gerar o link.'))
+    } finally {
+      setActing(null)
+    }
+  }
+
   const sendRetryEmail = async (id: number) => {
     setActing(id)
     setError('')
@@ -286,6 +304,10 @@ function RunRegistrationsPage() {
                                 <Button size="small" variant="outlined" color="info"
                                   disabled={acting === r.id} onClick={() => void sendRetryEmail(r.id)}>
                                   E-mail retentativa
+                                </Button>
+                                <Button size="small" variant="outlined" color="secondary"
+                                  disabled={acting === r.id} onClick={() => void paymentLink(r.id)}>
+                                  Link de pagamento
                                 </Button>
                               </>
                             )}

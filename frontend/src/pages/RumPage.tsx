@@ -349,6 +349,13 @@ function RumPage() {
                     Após pagar, envie o comprovante — a equipe confirma e sua vaga fica garantida.
                   </Typography>
                 </>
+              ) : registration.paymentMethod === 'CARTAO' ? (
+                <Typography variant="body2" sx={{ color: '#44506B' }}>
+                  Inscrição registrada! O pagamento por cartão está temporariamente
+                  indisponível — assim que normalizado, enviaremos um link de pagamento
+                  para seu e-mail/WhatsApp. Após a confirmação, o QR code para check-in
+                  do kit será enviado.
+                </Typography>
               ) : (
                 <Typography variant="body2" sx={{ color: '#44506B' }}>
                   Total: {fmtBRL(registration.totalCharged)}. A confirmação é manual —
@@ -404,15 +411,16 @@ function RumPage() {
                 <Button
                   variant={method === 'CARTAO' ? 'contained' : 'outlined'}
                   onClick={() => setMethod('CARTAO')} fullWidth
-                  disabled={!info?.cardEnabled}
                 >
-                  Cartão{!info?.cardEnabled ? ' (em breve)' : ''}
+                  Cartão
                 </Button>
               </Stack>
               {info && !info.cardEnabled && (
                 <Alert severity="info" sx={{ py: 0 }}>
-                  Pagamento por cartão indisponível no momento. Assim que retomar à
-                  normalidade, enviaremos um link de pagamento para seu e-mail/WhatsApp.
+                  Pagamento por cartão temporariamente indisponível — sua inscrição
+                  ficará <strong>pendente</strong> até a normalização. Assim que
+                  normalizado, enviaremos um link de pagamento para seu e-mail/WhatsApp.
+                  Após a confirmação, o QR code para check-in do kit será enviado.
                 </Alert>
               )}
               {error && <Alert severity="error">{error}</Alert>}

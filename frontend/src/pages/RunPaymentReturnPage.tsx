@@ -13,6 +13,7 @@ function RunPaymentReturnPage() {
   const [searchParams] = useSearchParams()
   const key = searchParams.get('key')
   const [qrUri, setQrUri] = useState<string | null>(null)
+  const [paid, setPaid] = useState(false)
   const [checking, setChecking] = useState(false)
 
   useEffect(() => {
@@ -25,9 +26,12 @@ function RunPaymentReturnPage() {
       try {
         const status = await runService.status(registrationId, key)
         if (cancelled) return
-        if (status.status === 'PAGA' && status.checkinCode) {
-          const verify = await runService.verify(status.checkinCode)
-          if (!cancelled) setQrUri(verify.qrUri)
+        if (status.status === 'PAGA') {
+          if (!cancelled) setPaid(true)
+          if (status.checkinCode) {
+            const verify = await runService.verify(status.checkinCode)
+            if (!cancelled) setQrUri(verify.qrUri)
+          }
           return
         }
       } catch {
@@ -72,15 +76,41 @@ function RunPaymentReturnPage() {
             bgcolor: '#FFFFFF', border: '1px solid #E3E8EF',
           }}
         >
-          <CheckCircleIcon sx={{ fontSize: 64, color: '#2E9E5B', mb: 2 }} />
-          <Typography variant="h5" sx={{ fontWeight: 800, color: '#1B2A6B', mb: 2 }}>
-            Pagamento recebido! Obrigado por correr com a gente.
-          </Typography>
-          <Typography sx={{ color: '#44506B', mb: 3 }}>
-            Sua inscrição no Mercado Solidário Run está sendo confirmada.
-            Assim que o pagamento for validado, você recebe um e-mail com o
-            <strong> QR code de retirada do kit</strong> (camisa + medalha) em anexo.
-          </Typography>
+          {paid ? (
+            <>
+              <CheckCircleIcon sx={{ fontSize: 64, color: '#2E9E5B', mb: 2 }} />
+              <Typography variant="h5" sx={{ fontWeight: 800, color: '#1B2A6B', mb: 2 }}>
+                Pagamento recebido! Obrigado por correr com a gente.
+              </Typography>
+              <Typography sx={{ color: '#44506B', mb: 3 }}>
+                Sua inscrição no Mercado Solidário Run está confirmada.
+              </Typography>
+            </>
+          ) : checking ? (
+            <>
+              <CircularProgress size={40} sx={{ mb: 2 }} />
+              <Typography variant="h5" sx={{ fontWeight: 800, color: '#1B2A6B', mb: 2 }}>
+                Confirmando seu pagamento…
+              </Typography>
+              <Typography sx={{ color: '#44506B', mb: 3 }}>
+                Estamos validando sua inscrição. Aguarde alguns segundos.
+              </Typography>
+            </>
+          ) : (
+            <>
+              <CheckCircleIcon sx={{ fontSize: 64, color: '#F0A202', mb: 2 }} />
+              <Typography variant="h5" sx={{ fontWeight: 800, color: '#1B2A6B', mb: 2 }}>
+                Inscrição registrada — pagamento pendente
+              </Typography>
+              <Typography sx={{ color: '#44506B', mb: 3 }}>
+                O pagamento por cartão está temporariamente indisponível. Sua inscrição
+                ficou pendente e, assim que o pagamento for confirmado, enviaremos o
+                QR code do kit por e-mail/WhatsApp. Se você pagou por PIX, a equipe
+                do projeto valida e libera normalmente — é só apresentar o comprovante
+                na retirada.
+              </Typography>
+            </>
+          )}
 
           {qrUri ? (
             <Box sx={{ mb: 3 }}>
@@ -98,20 +128,11 @@ function RunPaymentReturnPage() {
                 para apresentar na retirada do kit.
               </Typography>
             </Box>
-          ) : checking ? (
-            <Box sx={{ mb: 3, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
-              <CircularProgress size={18} />
-              <Typography variant="body2" color="text.secondary">
-                Confirmando seu pagamento…
-              </Typography>
-            </Box>
-          ) : (
+          ) : paid ? (
             <Typography sx={{ color: '#44506B', mb: 3 }}>
-              Se o pagamento foi por PIX e ainda estiver aguardando confirmação,
-              a equipe do projeto valida e libera seu kit normalmente —
-              é só apresentar o comprovante na retirada.
+              O QR code de retirada chega em instantes no seu e-mail.
             </Typography>
-          )}
+          ) : null}
 
           <Button
             variant="contained"

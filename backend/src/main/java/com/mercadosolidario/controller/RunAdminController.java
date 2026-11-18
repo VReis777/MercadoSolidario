@@ -53,6 +53,12 @@ public class RunAdminController {
         runService.sendRetryEmail(id);
     }
 
+    @PostMapping("/{id}/payment-link")
+    @PreAuthorize("hasRole('ADMIN')")
+    public java.util.Map<String, String> paymentLink(@PathVariable Long id) {
+        return java.util.Map.of("checkoutUrl", runService.paymentLink(id));
+    }
+
     // Retirada do kit pelo QR — equipe no local (ADMIN, RH ou voluntário).
     @PostMapping("/kit/{code}")
     @PreAuthorize("hasAnyRole('ADMIN', 'RH_TESOURARIA', 'DIACONO')")

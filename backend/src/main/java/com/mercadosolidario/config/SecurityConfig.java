@@ -96,7 +96,8 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.POST,
                     "/api/rum/registrations/*/confirm-payment",
                     "/api/rum/registrations/*/cancel",
-                    "/api/rum/registrations/*/send-retry-email")
+                    "/api/rum/registrations/*/send-retry-email",
+                    "/api/rum/registrations/*/payment-link")
                     .hasRole("ADMIN")
                 .requestMatchers(HttpMethod.DELETE, "/api/rum/registrations/*")
                     .hasRole("ADMIN")

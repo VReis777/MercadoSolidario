@@ -124,6 +124,10 @@ const runService = {
   sendRetryEmail: async (id: number): Promise<void> => {
     await api.post(`/rum/registrations/${id}/send-retry-email`)
   },
+  paymentLink: async (id: number): Promise<string> => {
+    const { data } = await api.post<{ checkoutUrl: string }>(`/rum/registrations/${id}/payment-link`)
+    return data.checkoutUrl
+  },
 }
 
 export default runService
