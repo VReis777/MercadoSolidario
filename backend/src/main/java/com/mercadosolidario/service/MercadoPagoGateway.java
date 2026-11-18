@@ -227,9 +227,12 @@ public class MercadoPagoGateway implements RunPaymentGateway {
         }
     }
 
-    /** notification_url só é enviada quando configurada — string vazia faz o MP rejeitar a cobrança. */
+    /**
+     * notification_url só é enviada quando é uma URL https válida —
+     * vazia ou inválida faz o MP rejeitar a cobrança PIX.
+     */
     private void putNotification(Map<String, Object> body) {
-        if (notificationUrl != null && !notificationUrl.isBlank()) {
+        if (notificationUrl != null && notificationUrl.startsWith("https://")) {
             body.put("notification_url", notificationUrl);
         }
     }
@@ -239,6 +242,7 @@ public class MercadoPagoGateway implements RunPaymentGateway {
             .uri(URI.create(API + path))
             .header("Authorization", "Bearer " + accessToken)
             .header("Content-Type", "application/json")
+            .header("X-Idempotency-Key", java.util.UUID.randomUUID().toString())
             .timeout(Duration.ofSeconds(20))
             .POST(HttpRequest.BodyPublishers.ofString(json, StandardCharsets.UTF_8))
             .build();
