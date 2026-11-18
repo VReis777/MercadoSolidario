@@ -17,6 +17,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.text.Normalizer;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.SecureRandom;
@@ -58,6 +59,11 @@ public class PublicServiceRequestService {
         entity.setAssistanceType(request.getAssistanceType());
         entity.setMessage(request.getMessage());
         entity.setConsentAccepted(request.getConsentAccepted());
+        String locationNorm = Normalizer.normalize(request.getLocation().toLowerCase(java.util.Locale.ROOT),
+            Normalizer.Form.NFD).replaceAll("\p{M}", "");
+        if (!locationNorm.contains("petr")) {
+            throw new IllegalArgumentException("No momento atendemos apenas Petrópolis (RJ). Informe sua cidade e bairro.");
+        }
         if (request.getWelcomePreference() == ServiceRequestWelcomePreference.VISIT) {
             if (!welcomeAvailabilityService.isAvailableForChoice(request.getWelcomeDate())) {
                 throw new IllegalArgumentException(

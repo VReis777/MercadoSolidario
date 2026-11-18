@@ -136,7 +136,7 @@ function RequestHelpPage({ demoMode = false }: RequestHelpPageProps) {
         next.contactValue = 'Informe um telefone válido com DDD.'
       }
     }
-    if (!form.location.trim()) next.location = 'Informe sua cidade ou bairro.'
+    if (!form.location.trim()) next.location = 'Informe cidade e bairro (ex.: Petrópolis — Centro). Atendemos somente Petrópolis (RJ).'
     else if (form.location.length > 255) next.location = 'Use até 255 caracteres.'
     const people = Number(form.householdSize)
     if (!Number.isInteger(people) || people <= 0) {
@@ -373,7 +373,7 @@ function RequestHelpPage({ demoMode = false }: RequestHelpPageProps) {
                   />
                 </Stack>
                 <TextField
-                  label="Cidade ou bairro"
+                  label="Cidade e bairro"
                   value={form.location}
                   onChange={(event) => updateForm('location', event.target.value)}
                   error={Boolean(errors.location)}

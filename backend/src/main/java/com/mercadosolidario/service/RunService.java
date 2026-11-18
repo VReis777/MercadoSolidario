@@ -453,6 +453,10 @@ public class RunService {
                         registration.getPaymentRef() != null
                             ? " (ref. " + registration.getPaymentRef() + ")" : ""));
             }
+        } catch (RuntimeException exception) {
+            log.warn("Inscrição paga mas e-mail à equipe não foi enviado.");
+        }
+        try {
             if (registration.getEmail() != null && !registration.getEmail().isBlank()) {
                 String verifyUrl = frontendBaseUrl + "/run/verificar/" + registration.getCheckinCode();
                 byte[] qrPng = pixPayloadGenerator.generateQrCodePng(verifyUrl);
