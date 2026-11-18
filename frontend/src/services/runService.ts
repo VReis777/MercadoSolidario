@@ -121,6 +121,9 @@ const runService = {
   remove: async (id: number): Promise<void> => {
     await api.delete(`/rum/registrations/${id}`)
   },
+  sendRetryEmail: async (id: number): Promise<void> => {
+    await api.post(`/rum/registrations/${id}/send-retry-email`)
+  },
 }
 
 export default runService

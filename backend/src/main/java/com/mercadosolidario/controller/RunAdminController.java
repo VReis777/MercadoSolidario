@@ -47,6 +47,12 @@ public class RunAdminController {
         runService.delete(id);
     }
 
+    @PostMapping("/{id}/send-retry-email")
+    @PreAuthorize("hasRole('ADMIN')")
+    public void sendRetryEmail(@PathVariable Long id) {
+        runService.sendRetryEmail(id);
+    }
+
     // Retirada do kit pelo QR — equipe no local (ADMIN, RH ou voluntário).
     @PostMapping("/kit/{code}")
     @PreAuthorize("hasAnyRole('ADMIN', 'RH_TESOURARIA', 'DIACONO')")

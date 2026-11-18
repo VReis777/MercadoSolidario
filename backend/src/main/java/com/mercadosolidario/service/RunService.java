@@ -241,6 +241,40 @@ public class RunService {
         return toStatus(registration);
     }
 
+    /** Envia e-mail de retentativa para inscrito pendente (instabilidade no pagamento). */
+    @Transactional(readOnly = true)
+    public void sendRetryEmail(Long id) {
+        RunRegistration registration = registrationRepository.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Inscrição não encontrada"));
+        if (registration.getEmail() == null || registration.getEmail().isBlank()) {
+            throw new ConflictException("Inscrição sem e-mail — avise pelo WhatsApp.");
+        }
+        String statusUrl = frontendBaseUrl + "/run/inscricao/" + registration.getId()
+            + "?key=" + registration.getAccessKey();
+        String runUrl = frontendBaseUrl + "/run";
+        emailSender.sendToMany(new String[]{registration.getEmail()},
+            "Sua inscrição no Mercado Solidário Run — pagamento",
+            """
+            Olá, %s!
+
+            Sentimos muito pela instabilidade no pagamento da sua inscrição
+            no Mercado Solidário Run (%s). O problema já foi corrigido.
+
+            PRIMEIRO, abra este link da sua inscrição:
+
+            %s
+
+            - Se você JÁ pagou: a confirmação acontece automaticamente
+              nesta página e o QR code do kit chega aqui no seu e-mail.
+            - Se ainda NÃO pagou: faça uma nova inscrição em %s
+              (a equipe une as inscrições repetidas — não se preocupe).
+
+            Sua vaga está garantida. Obrigado por correr com a gente!
+            Equipe Mercado Solidário
+            """.formatted(registration.getFullName(), registration.getModality(), statusUrl, runUrl));
+        audit("RUN_RETRY_EMAIL_SENT", registration.getId(), "to=" + registration.getEmail());
+    }
+
     @Transactional
     public RunStatusResponse cancel(Long id) {
         RunRegistration registration = registrationRepository.findByIdForUpdate(id)

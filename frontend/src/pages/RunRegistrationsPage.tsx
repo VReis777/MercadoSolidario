@@ -115,6 +115,19 @@ function RunRegistrationsPage() {
     }
   }
 
+  const sendRetryEmail = async (id: number) => {
+    setActing(id)
+    setError('')
+    try {
+      await runService.sendRetryEmail(id)
+      setMessage('E-mail de retentativa enviado.')
+    } catch (emailError) {
+      setError(getApiErrorMessage(emailError, 'Não foi possível enviar o e-mail.'))
+    } finally {
+      setActing(null)
+    }
+  }
+
   const remove = async (id: number, name: string) => {
     if (!window.confirm(`Excluir a inscrição de ${name}? Isso não pode ser desfeito.`)) return
     setActing(id)
@@ -269,6 +282,10 @@ function RunRegistrationsPage() {
                                 <Button size="small" variant="outlined" color="error"
                                   disabled={acting === r.id} onClick={() => void cancel(r.id)}>
                                   Cancelar
+                                </Button>
+                                <Button size="small" variant="outlined" color="info"
+                                  disabled={acting === r.id} onClick={() => void sendRetryEmail(r.id)}>
+                                  E-mail retentativa
                                 </Button>
                               </>
                             )}
