@@ -454,7 +454,8 @@ public class RunService {
                 r.getShirtSize(), r.getAmount(), r.getExtraDonation(), r.totalCharged(),
                 r.getPaymentMethod(), r.getStatus(),
                 r.getPaidAt(), r.getCreatedAt(),
-                r.getKitDeliveredAt(), r.getKitDeliveredBy(), r.getBirthDate(), r.getCheckinCode()))
+                r.getKitDeliveredAt(), r.getKitDeliveredBy(), r.getBirthDate(), r.getCheckinCode(),
+                r.getPaymentRef()))
             .toList();
     }
 

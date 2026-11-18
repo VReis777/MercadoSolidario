@@ -94,6 +94,7 @@ public class RunDtos {
         LocalDateTime kitDeliveredAt,
         String kitDeliveredBy,
         LocalDate birthDate,
-        String checkinCode
+        String checkinCode,
+        String paymentRef
     ) {}
 }

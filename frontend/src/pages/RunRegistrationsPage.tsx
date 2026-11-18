@@ -311,6 +311,7 @@ function RunRegistrationsPage() {
                         <Typography variant="caption" color="text.secondary">
                           {new Date(r.createdAt).toLocaleString('pt-BR')}
                           {r.paidAt ? ` · pago em ${new Date(r.paidAt).toLocaleString('pt-BR')}` : ''}
+                          {r.paymentRef ? ` · ref. MP: ${r.paymentRef}` : ''}
                         </Typography>
                         {r.kitDeliveredAt && (
                           <Typography variant="caption" color="success.main" fontWeight={700}>
