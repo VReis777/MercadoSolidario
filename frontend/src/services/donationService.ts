@@ -108,7 +108,7 @@ const donationService = {
     return response.data
   },
 
-  getPublicPixInfo: async (): Promise<{ configured: boolean; pixKey?: string; merchantName?: string; merchantCity?: string }> => {
+  getPublicPixInfo: async (): Promise<{ configured: boolean; pixKey?: string; merchantName?: string; merchantCity?: string; cardEnabled?: boolean }> => {
     const response = await api.get('/public/donations/pix-info')
     return response.data
   },

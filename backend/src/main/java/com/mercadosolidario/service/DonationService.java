@@ -211,7 +211,7 @@ public class DonationService {
         String name = setting(PIX_MERCHANT_NAME).orElse("");
         String city = setting(PIX_MERCHANT_CITY).orElse("");
         boolean configured = !key.isBlank() && !name.isBlank() && !city.isBlank();
-        return new PublicPixInfoResponse(configured, configured ? key : null, name, city);
+        return new PublicPixInfoResponse(configured, configured ? key : null, name, city, paymentGateway.isEnabled());
     }
 
     @Transactional

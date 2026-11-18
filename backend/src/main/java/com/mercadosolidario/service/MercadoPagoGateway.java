@@ -45,7 +45,10 @@ public class MercadoPagoGateway implements RunPaymentGateway {
 
     @Override
     public boolean isEnabled() {
-        return accessToken != null && !accessToken.isBlank();
+        // Credenciais de teste (TEST-*) não movimentam dinheiro real —
+        // o gateway fica desabilitado e o site cai nos fluxos manuais.
+        return accessToken != null && !accessToken.isBlank()
+            && !accessToken.startsWith("TEST-");
     }
 
     @Override

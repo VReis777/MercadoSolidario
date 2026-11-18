@@ -18,6 +18,7 @@ import { newRequestReference } from '../utils/idempotency'
 
 function PublicDonationPage() {
   const [pixKey, setPixKey] = useState('msolidario@hotmail.com')
+  const [cardEnabled, setCardEnabled] = useState(true)
   const [amount, setAmount] = useState('20.00')
   const [donorName, setDonorName] = useState('')
   const [anonymous, setAnonymous] = useState(false)
@@ -32,6 +33,7 @@ function PublicDonationPage() {
     donationService.getPublicPixInfo()
       .then((info) => {
         if (info.configured && info.pixKey) setPixKey(info.pixKey)
+        if (info.cardEnabled === false) setCardEnabled(false)
       })
       .catch(() => undefined)
   }, [])
@@ -150,11 +152,18 @@ function PublicDonationPage() {
                         type="button"
                         variant={paymentMethod === 'CARTAO' ? 'contained' : 'outlined'}
                         onClick={() => setPaymentMethod('CARTAO')}
+                        disabled={!cardEnabled}
                       >
-                        Cartão de crédito
+                        Cartão de crédito{!cardEnabled ? ' (em breve)' : ''}
                       </Button>
                     </Stack>
-                    {paymentMethod === 'CARTAO' && (
+                    {!cardEnabled && (
+                      <Alert severity="info" sx={{ mt: 1 }}>
+                        Pagamento por cartão indisponível no momento. Assim que retomar à
+                        normalidade, você poderá pagar com cartão nesta página.
+                      </Alert>
+                    )}
+                    {paymentMethod === 'CARTAO' && cardEnabled && (
                       <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 0.5 }}>
                         À vista. Doações a partir de R$ 250 podem parcelar em até 2x.
                       </Typography>

@@ -4,5 +4,6 @@ public record PublicPixInfoResponse(
         boolean configured,
         String pixKey,
         String merchantName,
-        String merchantCity) {
+        String merchantCity,
+        boolean cardEnabled) {
 }

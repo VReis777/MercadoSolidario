@@ -409,6 +409,12 @@ function RumPage() {
                   Cartão{!info?.cardEnabled ? ' (em breve)' : ''}
                 </Button>
               </Stack>
+              {info && !info.cardEnabled && (
+                <Alert severity="info" sx={{ py: 0 }}>
+                  Pagamento por cartão indisponível no momento. Assim que retomar à
+                  normalidade, enviaremos um link de pagamento para seu e-mail/WhatsApp.
+                </Alert>
+              )}
               {error && <Alert severity="error">{error}</Alert>}
             </>
           )}
