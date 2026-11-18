@@ -58,6 +58,12 @@ public class RunAdminController {
         return java.util.Map.of("checkoutUrl", runService.paymentLink(id));
     }
 
+    @PostMapping("/{id}/revert-payment")
+    @PreAuthorize("hasRole('ADMIN')")
+    public RunStatusResponse revertPayment(@PathVariable Long id) {
+        return runService.revertPayment(id);
+    }
+
     @PostMapping("/{id}/sync-payment")
     @PreAuthorize("hasRole('ADMIN')")
     public RunStatusResponse syncPayment(@PathVariable Long id) {

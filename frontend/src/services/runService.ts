@@ -140,6 +140,10 @@ const runService = {
     const { data } = await api.post<RunStatus>(`/rum/registrations/${id}/sync-payment`)
     return data
   },
+  revertPayment: async (id: number): Promise<RunStatus> => {
+    const { data } = await api.post<RunStatus>(`/rum/registrations/${id}/revert-payment`)
+    return data
+  },
 }
 
 export default runService

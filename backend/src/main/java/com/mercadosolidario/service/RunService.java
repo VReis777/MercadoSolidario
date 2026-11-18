@@ -395,6 +395,38 @@ public class RunService {
         return toStatus(registrationRepository.save(registration));
     }
 
+    /**
+     * Estorna uma confirmação: volta a inscrição para PENDENTE e remove a
+     * doação gerada na confirmação — usado quando o pagamento na verdade
+     * pertence a outra inscrição (ex.: PIX copia-e-cola trocado).
+     */
+    @Transactional
+    public RunStatusResponse revertPayment(Long id) {
+        RunRegistration registration = registrationRepository.findByIdForUpdate(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Inscrição não encontrada"));
+        if (!"PAGA".equals(registration.getStatus())) {
+            throw new ConflictException("Só é possível estornar inscrição paga.");
+        }
+        // Remove a doação criada na confirmação (mesmo doador, valor e data).
+        donationRepository.findAll().stream()
+            .filter(d -> d.getType() == DonationType.FINANCEIRA
+                && d.getStatus() == DonationStatus.PAGA
+                && registration.getFullName().equalsIgnoreCase(d.getDonorName())
+                && registration.totalCharged().compareTo(d.getAmount()) == 0
+                && registration.getPaidAt() != null
+                && d.getConfirmationDate() != null
+                && java.time.Duration.between(
+                    d.getConfirmationDate(), registration.getPaidAt()).abs()
+                    .compareTo(java.time.Duration.ofMinutes(10)) < 0)
+            .findFirst()
+            .ifPresent(donationRepository::delete);
+        registration.setStatus("PENDENTE");
+        registration.setPaidAt(null);
+        audit("RUN_REGISTRATION_PAYMENT_REVERTED", registration.getId(),
+            "modality=" + registration.getModality() + ",name=" + registration.getFullName());
+        return toStatus(registrationRepository.save(registration));
+    }
+
     /** Exclui inscrição não paga (PENDENTE ou CANCELADA) — ex.: testes e tentativas duplicadas. */
     @Transactional
     public void delete(Long id) {

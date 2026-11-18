@@ -175,6 +175,23 @@ function RunRegistrationsPage() {
     }
   }
 
+  const revertPayment = async (id: number, name: string) => {
+    if (!window.confirm(
+      `Estornar o pagamento de ${name}? A inscrição volta para PENDENTE e os R$ da arrecadação são removidos. ` +
+      `Use só quando o pagamento na verdade pertence a outra inscrição.`)) return
+    setActing(id)
+    setError('')
+    try {
+      await runService.revertPayment(id)
+      setMessage('Pagamento estornado — inscrição voltou para pendente.')
+      await load()
+    } catch (revertError) {
+      setError(getApiErrorMessage(revertError, 'Não foi possível estornar.'))
+    } finally {
+      setActing(null)
+    }
+  }
+
   const remove = async (id: number, name: string) => {
     if (!window.confirm(`Excluir a inscrição de ${name}? Isso não pode ser desfeito.`)) return
     setActing(id)
@@ -363,6 +380,13 @@ function RunRegistrationsPage() {
                               <Button size="small" variant="outlined" color="info"
                                 disabled={acting === r.id} onClick={() => void resendQr(r.id)}>
                                 Reenviar QR por e-mail
+                              </Button>
+                            )}
+                            {isAdmin && (
+                              <Button size="small" variant="outlined" color="warning"
+                                disabled={acting === r.id}
+                                onClick={() => void revertPayment(r.id, r.fullName)}>
+                                Estornar pagamento
                               </Button>
                             )}
                           </Stack>
