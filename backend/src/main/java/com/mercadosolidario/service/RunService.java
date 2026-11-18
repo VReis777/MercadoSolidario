@@ -551,16 +551,22 @@ public class RunService {
         emailSender.sendWithAttachment(registration.getEmail(), subject, body,
             attachmentName, qrPng, "image/png");
         // Cópia de confirmação para a equipe: prova de que o QR foi gerado/enviado.
-        if (notifyAddress != null && !notifyAddress.isBlank()
-                && !notifyAddress.equalsIgnoreCase(registration.getEmail())) {
+        // Vai sempre para a caixa de monitoramento do projeto, além do MAIL_NOTIFY.
+        Set<String> copyRecipients = new LinkedHashSet<>();
+        copyRecipients.add("mevammercadosolidario@gmail.com");
+        if (notifyAddress != null && !notifyAddress.isBlank()) {
+            copyRecipients.add(notifyAddress);
+        }
+        copyRecipients.removeIf(addr -> addr.equalsIgnoreCase(registration.getEmail()));
+        for (String copyTo : copyRecipients) {
             try {
-                emailSender.sendWithAttachment(notifyAddress,
+                emailSender.sendWithAttachment(copyTo,
                     "[cópia] " + subject + " — " + registration.getFullName(),
                     body + "\n\n---\nCópia de confirmação: este QR foi enviado para "
                         + registration.getEmail() + ".",
                     attachmentName, qrPng, "image/png");
             } catch (RuntimeException exception) {
-                log.warn("QR enviado ao inscrito mas cópia à equipe falhou.");
+                log.warn("QR enviado ao inscrito mas cópia à equipe ({}) falhou.", copyTo);
             }
         }
     }
