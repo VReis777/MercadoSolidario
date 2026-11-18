@@ -128,6 +128,13 @@ const runService = {
     const { data } = await api.post<{ checkoutUrl: string }>(`/rum/registrations/${id}/payment-link`)
     return data.checkoutUrl
   },
+  publicPaymentLink: async (id: number, accessKey: string): Promise<{ pixCode?: string; pixQrUri?: string; checkoutUrl?: string }> => {
+    const { data } = await publicApi.get(`/api/public/rum/registrations/${id}/payment-link?key=${accessKey}`)
+    return data
+  },
+  resendQrEmail: async (id: number): Promise<void> => {
+    await api.post(`/rum/registrations/${id}/resend-qr-email`)
+  },
 }
 
 export default runService

@@ -5,6 +5,8 @@ import com.mercadosolidario.dto.run.RunDtos.RunRegisterRequest;
 import com.mercadosolidario.dto.run.RunDtos.RunRegistrationResponse;
 import com.mercadosolidario.dto.run.RunDtos.RunStatusResponse;
 import com.mercadosolidario.dto.run.RunDtos.RunVerifyResponse;
+import com.mercadosolidario.service.PixPayloadGenerator;
+import com.mercadosolidario.service.RunPaymentGateway;
 import com.mercadosolidario.service.RunService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -26,6 +28,7 @@ import java.util.Map;
 public class PublicRunController {
 
     private final RunService runService;
+    private final PixPayloadGenerator pixPayloadGenerator;
 
     @GetMapping
     public RunInfoResponse info() {
@@ -42,6 +45,20 @@ public class PublicRunController {
     public RunStatusResponse status(@PathVariable Long id,
                                     @RequestParam(required = false) String key) {
         return runService.status(id, key);
+    }
+
+    // Nova cobrança para inscrição pendente — usado pelo link do e-mail de retentativa.
+    @GetMapping("/registrations/{id}/payment-link")
+    public Map<String, String> paymentLink(@PathVariable Long id,
+                                           @RequestParam(required = false) String key) {
+        RunPaymentGateway.Charge charge = runService.publicPaymentLink(id, key);
+        Map<String, String> response = new java.util.HashMap<>();
+        if (charge.pixCode() != null) response.put("pixCode", charge.pixCode());
+        if (charge.pixCode() != null) {
+            response.put("pixQrUri", pixPayloadGenerator.generateQrCodeDataUri(charge.pixCode()));
+        }
+        if (charge.checkoutUrl() != null) response.put("checkoutUrl", charge.checkoutUrl());
+        return response;
     }
 
     // Verificação pública pelo QR na retirada do kit.

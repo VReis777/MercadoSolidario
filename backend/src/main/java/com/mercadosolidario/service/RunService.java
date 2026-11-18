@@ -91,6 +91,19 @@ public class RunService {
             throw new IllegalArgumentException("A corrida e a caminhada são exclusivas para maiores de 18 anos.");
         }
 
+        // Uma pessoa = uma inscrição ativa: mesmo e-mail ou mesmo telefone
+        // (comparando só os dígitos) bloqueia duplicidade e vaga presa.
+        String emailNorm = trimToNull(request.email());
+        String phoneDigits = digits(trimToNull(request.phone()));
+        boolean duplicate = registrationRepository.findByStatusNot("CANCELADA").stream()
+            .anyMatch(r -> (emailNorm != null && emailNorm.equalsIgnoreCase(trimToNull(r.getEmail())))
+                || (phoneDigits != null && phoneDigits.equals(digits(trimToNull(r.getPhone())))));
+        if (duplicate) {
+            throw new ConflictException(
+                "Já existe uma inscrição ativa com este e-mail ou telefone. "
+                    + "Abra o link que enviamos por e-mail ou fale com a equipe — não é preciso se inscrever de novo.");
+        }
+
         int slots = slots(modality);
         long registered = registrationRepository.countActiveByModality(modality);
         if (registered >= slots) {
@@ -248,7 +261,6 @@ public class RunService {
         }
         String statusUrl = frontendBaseUrl + "/run/inscricao/" + registration.getId()
             + "?key=" + registration.getAccessKey();
-        String runUrl = frontendBaseUrl + "/run";
         emailSender.sendToMany(new String[]{registration.getEmail()},
             "Sua inscrição no Mercado Solidário Run — pagamento",
             """
@@ -263,12 +275,13 @@ public class RunService {
 
             - Se você JÁ pagou: a confirmação acontece automaticamente
               nesta página e o QR code do kit chega aqui no seu e-mail.
-            - Se ainda NÃO pagou: faça uma nova inscrição em %s
-              (a equipe une as inscrições repetidas — não se preocupe).
+            - Se ainda NÃO pagou: use o botão "Pagar agora" aqui nesta
+              mesma página — sua inscrição continua valendo, não precisa
+              se inscrever de novo (uma pessoa = uma inscrição).
 
             Sua vaga está garantida. Obrigado por correr com a gente!
             Equipe Mercado Solidário
-            """.formatted(registration.getFullName(), registration.getModality(), statusUrl, runUrl));
+            """.formatted(registration.getFullName(), registration.getModality(), statusUrl));
         audit("RUN_RETRY_EMAIL_SENT", registration.getId(), "to=" + registration.getEmail());
     }
 
@@ -318,6 +331,38 @@ public class RunService {
             }
         }
         return charge.checkoutUrl();
+    }
+
+    /**
+     * Link de pagamento self-service: a pessoa abre o link do e-mail de
+     * retentativa, cai na tela de status e pode gerar uma nova cobrança
+     * (a chave de acesso da inscrição funciona como credencial).
+     */
+    @Transactional
+    public RunPaymentGateway.Charge publicPaymentLink(Long id, String key) {
+        RunRegistration registration = registrationRepository.findByIdForUpdate(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Inscrição não encontrada"));
+        if (key == null || registration.getAccessKey() == null
+                || !registration.getAccessKey().equals(key)) {
+            throw new ResourceNotFoundException("Inscrição não encontrada");
+        }
+        if (!"PENDENTE".equals(registration.getStatus())) {
+            throw new ConflictException("Esta inscrição não está pendente de pagamento.");
+        }
+        if (!paymentGateway.isEnabled()) {
+            throw new ConflictException("Pagamento online indisponível no momento — a equipe enviará as instruções pelo WhatsApp/e-mail.");
+        }
+        RunPaymentGateway.Charge charge = "PIX".equals(registration.getPaymentMethod())
+            ? paymentGateway.createPixCharge(registration).orElse(null)
+            : paymentGateway.createCardCheckout(registration).orElse(null);
+        if (charge == null) {
+            throw new ConflictException("Não foi possível gerar o link de pagamento — tente novamente em instantes.");
+        }
+        registration.setPaymentRef(charge.paymentRef());
+        registrationRepository.save(registration);
+        audit("RUN_PUBLIC_PAYMENT_LINK", registration.getId(),
+            "method=" + registration.getPaymentMethod());
+        return charge;
     }
 
     @Transactional
@@ -457,33 +502,51 @@ public class RunService {
             log.warn("Inscrição paga mas e-mail à equipe não foi enviado.");
         }
         try {
-            if (registration.getEmail() != null && !registration.getEmail().isBlank()) {
-                String verifyUrl = frontendBaseUrl + "/run/verificar/" + registration.getCheckinCode();
-                byte[] qrPng = pixPayloadGenerator.generateQrCodePng(verifyUrl);
-                emailSender.sendWithAttachment(registration.getEmail(),
-                    "Inscrição confirmada - Mercado Solidário Run",
-                    """
-                    Olá, %s!
-
-                    Sua inscrição na corrida Mercado Solidário Run (%s) está CONFIRMADA.
-                    Obrigado por correr com a gente — sua inscrição se transforma em dignidade.
-
-                    Número da inscrição: %d
-                    Camisa: %s
-
-                    Seu QR de retirada do kit (camisa + medalha) vai em ANEXO
-                    neste e-mail — apresente-o na retirada. Se preferir, abra:
-                    %s
-                    """.formatted(registration.getFullName(), registration.getModality(),
-                        registration.getId(),
-                        registration.getShirtSize() != null ? registration.getShirtSize() : "não informado",
-                        verifyUrl),
-                    "qrcode-inscricao-" + registration.getId() + ".png",
-                    qrPng, "image/png");
-            }
+            sendQrEmail(registration);
         } catch (RuntimeException exception) {
             log.warn("Inscrição paga mas e-mail de confirmação não foi enviado.");
         }
+    }
+
+    /** Reenvia o e-mail com o QR de retirada — usado pela equipe quando o primeiro envio falhou. */
+    @Transactional
+    public void resendQrEmail(Long id) {
+        RunRegistration registration = registrationRepository.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Inscrição não encontrada"));
+        if (!"PAGA".equals(registration.getStatus())) {
+            throw new ConflictException("Só é possível reenviar o QR de inscrição paga.");
+        }
+        sendQrEmail(registration);
+        audit("RUN_QR_EMAIL_RESENT", registration.getId(), "to=" + registration.getEmail());
+    }
+
+    private void sendQrEmail(RunRegistration registration) {
+        if (registration.getEmail() == null || registration.getEmail().isBlank()) {
+            log.warn("Inscrição {} sem e-mail — QR não enviado.", registration.getId());
+            return;
+        }
+        String verifyUrl = frontendBaseUrl + "/run/verificar/" + registration.getCheckinCode();
+        byte[] qrPng = pixPayloadGenerator.generateQrCodePng(verifyUrl);
+        emailSender.sendWithAttachment(registration.getEmail(),
+            "Inscrição confirmada - Mercado Solidário Run",
+            """
+            Olá, %s!
+
+            Sua inscrição na corrida Mercado Solidário Run (%s) está CONFIRMADA.
+            Obrigado por correr com a gente — sua inscrição se transforma em dignidade.
+
+            Número da inscrição: %d
+            Camisa: %s
+
+            Seu QR de retirada do kit (camisa + medalha) vai em ANEXO
+            neste e-mail — apresente-o na retirada. Se preferir, abra:
+            %s
+            """.formatted(registration.getFullName(), registration.getModality(),
+                registration.getId(),
+                registration.getShirtSize() != null ? registration.getShirtSize() : "não informado",
+                verifyUrl),
+            "qrcode-inscricao-" + registration.getId() + ".png",
+            qrPng, "image/png");
     }
 
     private long priceCents() {
@@ -517,6 +580,16 @@ public class RunService {
         entry.setEntityId(entityId);
         entry.setDetails(details);
         auditLogRepository.save(entry);
+    }
+
+    private String digits(String value) {
+        if (value == null) return null;
+        String d = value.replaceAll("\\D", "");
+        // Ignora o DDI 55 na comparação para não duplicar a mesma pessoa.
+        if (d.length() > 11 && d.startsWith("55")) {
+            d = d.substring(2);
+        }
+        return d.isEmpty() ? null : d;
     }
 
     private String trimToNull(String value) {

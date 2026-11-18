@@ -23,4 +23,6 @@ public interface RunRegistrationRepository extends JpaRepository<RunRegistration
     Optional<RunRegistration> findByCheckinCode(String checkinCode);
 
     List<RunRegistration> findAllByOrderByCreatedAtDesc();
+
+    List<RunRegistration> findByStatusNot(String status);
 }

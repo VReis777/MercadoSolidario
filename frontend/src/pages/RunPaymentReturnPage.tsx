@@ -5,6 +5,7 @@ import {
 } from '@mui/material'
 import CheckCircleIcon from '@mui/icons-material/CheckCircle'
 import runService from '../services/runService'
+import { getApiErrorMessage } from '../utils/apiError'
 
 // Tela de retorno do checkout do Mercado Pago após pagar a inscrição.
 function RunPaymentReturnPage() {
@@ -15,6 +16,29 @@ function RunPaymentReturnPage() {
   const [qrUri, setQrUri] = useState<string | null>(null)
   const [paid, setPaid] = useState(false)
   const [checking, setChecking] = useState(false)
+  const [payBusy, setPayBusy] = useState(false)
+  const [payError, setPayError] = useState('')
+  const [pixInfo, setPixInfo] = useState<{ pixCode: string; pixQrUri: string | null } | null>(null)
+
+  const payNow = async () => {
+    if (!id || !key) return
+    setPayBusy(true)
+    setPayError('')
+    try {
+      const link = await runService.publicPaymentLink(Number(id), key)
+      if (link.checkoutUrl) {
+        window.location.href = link.checkoutUrl
+        return
+      }
+      if (link.pixCode) {
+        setPixInfo({ pixCode: link.pixCode, pixQrUri: link.pixQrUri ?? null })
+      }
+    } catch (payErr) {
+      setPayError(getApiErrorMessage(payErr, 'Não foi possível gerar o link de pagamento agora.'))
+    } finally {
+      setPayBusy(false)
+    }
+  }
 
   useEffect(() => {
     if (!id || !key) return
@@ -109,6 +133,30 @@ function RunPaymentReturnPage() {
                 do projeto valida e libera normalmente — é só apresentar o comprovante
                 na retirada.
               </Typography>
+              {payError && (
+                <Typography color="error" sx={{ mb: 2 }}>{payError}</Typography>
+              )}
+              {pixInfo && (
+                <Box sx={{ mb: 2 }}>
+                  {pixInfo.pixQrUri && (
+                    <Box component="img" src={pixInfo.pixQrUri} alt="QR Code PIX"
+                      sx={{ width: 200, height: 200, mb: 1 }} />
+                  )}
+                  <Typography variant="body2" sx={{ wordBreak: 'break-all', mb: 1 }}>
+                    PIX copia e cola: {pixInfo.pixCode}
+                  </Typography>
+                  <Button size="small" variant="outlined"
+                    onClick={() => void navigator.clipboard.writeText(pixInfo.pixCode)}>
+                    Copiar código PIX
+                  </Button>
+                </Box>
+              )}
+              {!pixInfo && (
+                <Button variant="contained" disabled={payBusy} onClick={() => void payNow()}
+                  sx={{ fontWeight: 700, mb: 2, bgcolor: '#F0A202', '&:hover': { bgcolor: '#D18F00' } }}>
+                  {payBusy ? 'Gerando link…' : 'Pagar agora'}
+                </Button>
+              )}
             </>
           )}
 

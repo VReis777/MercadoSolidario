@@ -146,6 +146,19 @@ function RunRegistrationsPage() {
     }
   }
 
+  const resendQr = async (id: number) => {
+    setActing(id)
+    setError('')
+    try {
+      await runService.resendQrEmail(id)
+      setMessage('E-mail com QR reenviado ao inscrito.')
+    } catch (qrError) {
+      setError(getApiErrorMessage(qrError, 'Não foi possível reenviar o e-mail do QR.'))
+    } finally {
+      setActing(null)
+    }
+  }
+
   const remove = async (id: number, name: string) => {
     if (!window.confirm(`Excluir a inscrição de ${name}? Isso não pode ser desfeito.`)) return
     setActing(id)
@@ -317,11 +330,21 @@ function RunRegistrationsPage() {
                             </Button>
                           </Stack>
                         )}
-                        {r.status === 'PAGA' && whatsappLink(r) && (
-                          <Button size="small" variant="outlined" color="success" sx={{ mt: 1 }}
-                            component="a" href={whatsappLink(r) ?? '#'} target="_blank" rel="noreferrer">
-                            Enviar QR no WhatsApp
-                          </Button>
+                        {r.status === 'PAGA' && (
+                          <Stack direction="row" gap={1} sx={{ mt: 1 }}>
+                            {whatsappLink(r) && (
+                              <Button size="small" variant="outlined" color="success"
+                                component="a" href={whatsappLink(r) ?? '#'} target="_blank" rel="noreferrer">
+                                Enviar QR no WhatsApp
+                              </Button>
+                            )}
+                            {isAdmin && (
+                              <Button size="small" variant="outlined" color="info"
+                                disabled={acting === r.id} onClick={() => void resendQr(r.id)}>
+                                Reenviar QR por e-mail
+                              </Button>
+                            )}
+                          </Stack>
                         )}
                       </CardContent>
                     </Card>
