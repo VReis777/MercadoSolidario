@@ -215,6 +215,21 @@ function RunRegistrationsPage() {
     }
   }
 
+  const recadastrar = async (id: number, name: string) => {
+    if (!window.confirm(`Criar uma nova inscrição PENDENTE com os dados de ${name}? A inscrição atual não é alterada.`)) return
+    setActing(id)
+    setError('')
+    try {
+      const reg = await runService.recadastrar(id)
+      setMessage(`Nova inscrição #${reg.id} criada como pendente com os dados de ${name}.`)
+      await load()
+    } catch (reError) {
+      setError(getApiErrorMessage(reError, 'Não foi possível recadastrar.'))
+    } finally {
+      setActing(null)
+    }
+  }
+
   const remove = async (id: number, name: string) => {
     if (!window.confirm(`Excluir a inscrição de ${name}? Isso não pode ser desfeito.`)) return
     setActing(id)
@@ -394,6 +409,10 @@ function RunRegistrationsPage() {
                             <Button size="small" variant="text" color="error"
                               disabled={acting === r.id} onClick={() => void remove(r.id, r.fullName)}>
                               Excluir
+                            </Button>
+                            <Button size="small" variant="text" color="primary"
+                              disabled={acting === r.id} onClick={() => void recadastrar(r.id, r.fullName)}>
+                              Recadastrar
                             </Button>
                           </Stack>
                         )}

@@ -149,6 +149,10 @@ const runService = {
     const { data } = await api.post<AdminRunRegistration>(`/rum/registrations/${id}/claim-payment`, { fromId })
     return data
   },
+  recadastrar: async (id: number): Promise<AdminRunRegistration> => {
+    const { data } = await api.post<AdminRunRegistration>(`/rum/registrations/${id}/recadastrar`)
+    return data
+  },
 }
 
 export default runService

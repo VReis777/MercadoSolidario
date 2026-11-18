@@ -78,6 +78,12 @@ public class RunAdminController {
         return runService.claimPayment(id, body.get("fromId"));
     }
 
+    @PostMapping("/{id}/recadastrar")
+    @PreAuthorize("hasRole('ADMIN')")
+    public AdminRunRegistrationResponse recadastrar(@PathVariable Long id) {
+        return runService.recadastrar(id);
+    }
+
     @PostMapping("/{id}/resend-qr-email")
     @PreAuthorize("hasRole('ADMIN')")
     public void resendQrEmail(@PathVariable Long id) {

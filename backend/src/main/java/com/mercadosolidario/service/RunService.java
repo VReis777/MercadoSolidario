@@ -310,6 +310,33 @@ public class RunService {
         return toAdmin(registrationRepository.save(target));
     }
 
+    /**
+     * Cria uma nova inscrição PENDENTE copiando os dados de outra —
+     * usado quando a inscrição original precisa ser excluída (ex.:
+     * pagamento atribuído à pessoa errada).
+     */
+    @Transactional
+    public AdminRunRegistrationResponse recadastrar(Long id) {
+        RunRegistration source = registrationRepository.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Inscrição não encontrada"));
+        RunRegistration copy = new RunRegistration();
+        copy.setFullName(source.getFullName());
+        copy.setEmail(source.getEmail());
+        copy.setPhone(source.getPhone());
+        copy.setBirthDate(source.getBirthDate());
+        copy.setModality(source.getModality());
+        copy.setShirtSize(source.getShirtSize());
+        copy.setAmount(source.getAmount());
+        copy.setExtraDonation(source.getExtraDonation());
+        copy.setPaymentMethod(source.getPaymentMethod());
+        copy.setStatus("PENDENTE");
+        copy.setAccessKey(UUID.randomUUID().toString().replace("-", ""));
+        RunRegistration saved = registrationRepository.save(copy);
+        audit("RUN_REGISTRATION_RECREATED", saved.getId(),
+            "from=" + id + ",name=" + saved.getFullName());
+        return toAdmin(saved);
+    }
+
     /** Envia e-mail de retentativa para inscrito pendente (instabilidade no pagamento). */
     @Transactional(readOnly = true)
     public void sendRetryEmail(Long id) {
