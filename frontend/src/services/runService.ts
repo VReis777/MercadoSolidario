@@ -137,8 +137,8 @@ const runService = {
   resendQrEmail: async (id: number): Promise<void> => {
     await api.post(`/rum/registrations/${id}/resend-qr-email`)
   },
-  syncPayment: async (id: number): Promise<RunStatus> => {
-    const { data } = await api.post<RunStatus>(`/rum/registrations/${id}/sync-payment`)
+  syncPayment: async (id: number): Promise<AdminRunRegistration> => {
+    const { data } = await api.post<AdminRunRegistration>(`/rum/registrations/${id}/sync-payment`)
     return data
   },
   revertPayment: async (id: number): Promise<RunStatus> => {

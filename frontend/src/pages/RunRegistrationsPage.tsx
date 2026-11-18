@@ -137,9 +137,9 @@ function RunRegistrationsPage() {
     setActing(id)
     setError('')
     try {
-      const status = await runService.syncPayment(id)
-      setMessage(status.status === 'PAGA'
-        ? 'Pagamento encontrado no Mercado Pago — inscrição confirmada e QR enviado.'
+      const reg = await runService.syncPayment(id)
+      setMessage(reg.status === 'PAGA'
+        ? `Pagamento confirmado como ${reg.paymentMethod === 'PIX' ? 'PIX' : 'cartão'} — QR enviado ao inscrito.`
         : 'Nenhum pagamento aprovado encontrado no Mercado Pago para esta inscrição.')
       await load()
     } catch (syncError) {

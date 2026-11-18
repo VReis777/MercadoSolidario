@@ -56,6 +56,15 @@ public interface RunPaymentGateway {
         return Optional.empty();
     }
 
+    /**
+     * Forma real de pagamento do pagamento aprovado com esta
+     * external_reference: "PIX" ou "CARTAO" — cobre quem troca de
+     * método dentro do checkout (ex.: inscreveu cartão, pagou PIX).
+     */
+    default Optional<String> approvedPaymentMethodForReference(String externalReference) {
+        return Optional.empty();
+    }
+
     record Charge(String paymentRef, String pixCode, String checkoutUrl) {}
 
     static BigDecimal reais(long cents) {

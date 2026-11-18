@@ -202,9 +202,8 @@ public class RunService {
                 approved = paymentGateway.hasApprovedPaymentFor(registration.getId().toString());
             }
             if (approved) {
-                markPaid(registration,
-                    paymentGateway.approvedNetReceivedForReference(registration.getId().toString())
-                        .orElseGet(() -> estimateNet(registration)));
+                confirmViaGateway(registration,
+                    () -> paymentGateway.approvedNetReceivedForReference(registration.getId().toString()));
             }
         }
         return toStatus(registration);
@@ -235,8 +234,8 @@ public class RunService {
                     .filter(r -> "PENDENTE".equals(r.getStatus()))
                     .ifPresent(r -> {
                         r.setPaymentRef(paymentId);
-                        markPaid(r, paymentGateway.approvedNetReceived(paymentId)
-                            .orElseGet(() -> estimateNet(r)));
+                        confirmViaGateway(r,
+                            () -> paymentGateway.approvedNetReceived(paymentId));
                     });
             } catch (NumberFormatException ignored) {
                 // external_reference inesperada — ignora o webhook.
@@ -263,16 +262,15 @@ public class RunService {
      * referência da inscrição, confirma na hora (cobre webhook atrasado/ausente).
      */
     @Transactional
-    public RunStatusResponse syncPayment(Long id) {
+    public AdminRunRegistrationResponse syncPayment(Long id) {
         RunRegistration registration = registrationRepository.findByIdForUpdate(id)
             .orElseThrow(() -> new ResourceNotFoundException("Inscrição não encontrada"));
         if ("PENDENTE".equals(registration.getStatus()) && paymentGateway.isEnabled()
                 && paymentGateway.hasApprovedPaymentFor(registration.getId().toString())) {
-            markPaid(registration,
-                paymentGateway.approvedNetReceivedForReference(registration.getId().toString())
-                    .orElseGet(() -> estimateNet(registration)));
+            confirmViaGateway(registration,
+                () -> paymentGateway.approvedNetReceivedForReference(registration.getId().toString()));
         }
-        return toStatus(registration);
+        return toAdmin(registrationRepository.save(registration));
     }
 
     /** Envia e-mail de retentativa para inscrito pendente (instabilidade no pagamento). */
@@ -487,14 +485,36 @@ public class RunService {
     @Transactional(readOnly = true)
     public List<AdminRunRegistrationResponse> listAll() {
         return registrationRepository.findAllByOrderByCreatedAtDesc().stream()
-            .map(r -> new AdminRunRegistrationResponse(
-                r.getId(), r.getFullName(), r.getEmail(), r.getPhone(), r.getModality(),
-                r.getShirtSize(), r.getAmount(), r.getExtraDonation(), r.totalCharged(),
-                r.getPaymentMethod(), r.getStatus(),
-                r.getPaidAt(), r.getCreatedAt(),
-                r.getKitDeliveredAt(), r.getKitDeliveredBy(), r.getBirthDate(), r.getCheckinCode(),
-                r.getPaymentRef(), r.getNetAmount()))
+            .map(this::toAdmin)
             .toList();
+    }
+
+    private AdminRunRegistrationResponse toAdmin(RunRegistration r) {
+        return new AdminRunRegistrationResponse(
+            r.getId(), r.getFullName(), r.getEmail(), r.getPhone(), r.getModality(),
+            r.getShirtSize(), r.getAmount(), r.getExtraDonation(), r.totalCharged(),
+            r.getPaymentMethod(), r.getStatus(),
+            r.getPaidAt(), r.getCreatedAt(),
+            r.getKitDeliveredAt(), r.getKitDeliveredBy(), r.getBirthDate(), r.getCheckinCode(),
+            r.getPaymentRef(), r.getNetAmount());
+    }
+
+    /**
+     * Confirma via gateway detectando a forma REAL de pagamento no MP
+     * (cobre quem trocou cartão↔PIX dentro do checkout) e o líquido
+     * exato; cai na estimativa de taxa quando o valor não vem.
+     */
+    private void confirmViaGateway(RunRegistration registration,
+                                   java.util.function.Supplier<java.util.Optional<BigDecimal>> netLookup) {
+        paymentGateway.approvedPaymentMethodForReference(registration.getId().toString())
+            .ifPresent(method -> {
+                if (!method.equals(registration.getPaymentMethod())) {
+                    audit("RUN_PAYMENT_METHOD_CORRECTED", registration.getId(),
+                        "de=" + registration.getPaymentMethod() + ",para=" + method);
+                    registration.setPaymentMethod(method);
+                }
+            });
+        markPaid(registration, netLookup.get().orElseGet(() -> estimateNet(registration)));
     }
 
     private void markPaid(RunRegistration registration, BigDecimal netAmount) {

@@ -203,6 +203,15 @@ public class MercadoPagoGateway implements RunPaymentGateway {
 
     @Override
     public Optional<BigDecimal> approvedNetReceivedForReference(String externalReference) {
+        return approvedPaymentForReference(externalReference).flatMap(this::netReceived);
+    }
+
+    @Override
+    public Optional<String> approvedPaymentMethodForReference(String externalReference) {
+        return approvedPaymentForReference(externalReference).map(this::paymentMethodOf);
+    }
+
+    private Optional<JsonNode> approvedPaymentForReference(String externalReference) {
         try {
             String url = API + "/v1/payments/search?external_reference="
                 + URLEncoder.encode(externalReference, StandardCharsets.UTF_8) + "&limit=10";
@@ -218,14 +227,21 @@ public class MercadoPagoGateway implements RunPaymentGateway {
             for (JsonNode payment : mapper.readTree(response.body()).path("results")) {
                 if ("approved".equals(payment.path("status").asText())
                         && externalReference.equals(payment.path("external_reference").asText(null))) {
-                    return netReceived(payment);
+                    return Optional.of(payment);
                 }
             }
             return Optional.empty();
         } catch (Exception exception) {
-            log.warn("Mercado Pago: falha ao buscar líquido por referência {}.", externalReference);
+            log.warn("Mercado Pago: falha ao buscar pagamento por referência {}.", externalReference);
             return Optional.empty();
         }
+    }
+
+    /** PIX quando o método é pix; demais meios aprovados contam como cartão. */
+    private String paymentMethodOf(JsonNode payment) {
+        String method = payment.path("payment_method_id").asText("");
+        String type = payment.path("payment_type_id").asText("");
+        return "pix".equals(method) || "bank_transfer".equals(type) ? "PIX" : "CARTAO";
     }
 
     private JsonNode getPayment(String paymentId) throws Exception {

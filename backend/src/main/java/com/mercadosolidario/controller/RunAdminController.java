@@ -66,7 +66,7 @@ public class RunAdminController {
 
     @PostMapping("/{id}/sync-payment")
     @PreAuthorize("hasRole('ADMIN')")
-    public RunStatusResponse syncPayment(@PathVariable Long id) {
+    public AdminRunRegistrationResponse syncPayment(@PathVariable Long id) {
         return runService.syncPayment(id);
     }
 
