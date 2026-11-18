@@ -350,12 +350,16 @@ function RumPage() {
                   </Typography>
                 </>
               ) : registration.paymentMethod === 'CARTAO' ? (
-                <Typography variant="body2" sx={{ color: '#44506B' }}>
-                  Inscrição registrada! O pagamento por cartão está temporariamente
-                  indisponível — assim que normalizado, enviaremos um link de pagamento
-                  para seu e-mail/WhatsApp. Após a confirmação, o QR code para check-in
-                  do kit será enviado.
-                </Typography>
+                <>
+                  <Typography variant="body2" sx={{ color: '#44506B' }}>
+                    Inscrição registrada! Total a pagar no cartão:{' '}
+                    <strong>{fmtBRL(registration.totalCharged)}</strong> (inclui taxa de
+                    R$ 7,00 do Mercado Pago). O pagamento por cartão está temporariamente
+                    indisponível — assim que normalizado, enviaremos um link de pagamento
+                    para seu e-mail/WhatsApp. Após a confirmação, o QR code para check-in
+                    do kit será enviado.
+                  </Typography>
+                </>
               ) : (
                 <Typography variant="body2" sx={{ color: '#44506B' }}>
                   Total: {fmtBRL(registration.totalCharged)}. A confirmação é manual —
@@ -418,8 +422,8 @@ function RumPage() {
               {method === 'CARTAO' && info && (
                 <Typography variant="body2" sx={{ color: '#44506B' }}>
                   Inscrição {fmtBRL(info.amount + (Number(extraDonation) || 0))} + taxa de
-                  cartão <strong>R$ 7,00</strong> = total{' '}
-                  <strong>{fmtBRL(info.amount + (Number(extraDonation) || 0) + 7)}</strong>
+                  cartão <strong>R$ 7,00</strong> (cobre a taxa cobrada pelo Mercado Pago)
+                  {' '}= total <strong>{fmtBRL(info.amount + (Number(extraDonation) || 0) + 7)}</strong>
                 </Typography>
               )}
               {info && !info.cardEnabled && (
