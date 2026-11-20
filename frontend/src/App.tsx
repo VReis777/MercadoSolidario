@@ -11,6 +11,7 @@ import PublicPage from './pages/PublicPage'
 import LandingPage from './pages/LandingPage'
 import ConhecaPage from './pages/ConhecaPage'
 import RumPage from './pages/RumPage'
+import Percurso7kmPage from './pages/Percurso7kmPage'
 import RunVerifyPage from './pages/RunVerifyPage'
 import RunPaymentReturnPage from './pages/RunPaymentReturnPage'
 import RunRegistrationsPage from './pages/RunRegistrationsPage'
@@ -105,6 +106,7 @@ function AppContent() {
         <Route path="/nossahistoria" element={<LandingPage />} />
         <Route path="/conheca" element={<ConhecaPage />} />
         <Route path="/run" element={<RumPage />} />
+        <Route path="/percurso7km" element={<Percurso7kmPage />} />
         <Route path="/run/verificar/:code" element={<RunVerifyPage />} />
         <Route path="/run/inscricao/:id" element={<RunPaymentReturnPage />} />
         <Route path="/rum/*" element={<RumRedirect />} />

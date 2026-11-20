@@ -47,7 +47,6 @@ function RumPage() {
   const [error, setError] = useState('')
   const [registration, setRegistration] = useState<RunRegistration | null>(null)
   const [status, setStatus] = useState<RunStatus | null>(null)
-  const [percursoOpen, setPercursoOpen] = useState(false)
 
   useEffect(() => {
     runService.info().then(setInfo).catch(() => {})
@@ -235,7 +234,7 @@ function RumPage() {
                   <Button
                     variant="contained"
                     startIcon={<MapIcon />}
-                    onClick={() => setPercursoOpen(true)}
+                    onClick={() => navigate('/percurso7km')}
                     sx={{
                       mt: 1.5, fontWeight: 700, width: '100%',
                       bgcolor: '#19B8D2', '&:hover': { bgcolor: '#1490A8' },
@@ -464,39 +463,6 @@ function RumPage() {
               </Button>
             </>
           )}
-        </DialogActions>
-      </Dialog>
-
-      <Dialog open={percursoOpen} onClose={() => setPercursoOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle sx={{ fontWeight: 800, color: '#1B2A6B' }}>
-          🏃‍♂️ Trajeto liberado — Corrida 7 km
-        </DialogTitle>
-        <DialogContent dividers>
-          <Typography variant="body1" sx={{ mb: 2, color: '#44506B' }}>
-            Já saiu o percurso do Mercado Solidário Run! São aproximadamente{' '}
-            <strong>6,56 km</strong> pelas ruas de Petrópolis, com largada e chegada na
-            MEVAM Petrópolis, na Rua Bernardo Vasconcelos, 604.
-          </Typography>
-          <Box
-            component="img"
-            src="/percurso-7km.jpg"
-            alt="Mapa do percurso da corrida de 7 km do Mercado Solidário Run"
-            sx={{ width: '100%', borderRadius: 2, mb: 2, border: '1px solid #E3E8EF' }}
-          />
-          {[
-            ['Trecho 1 · 1,33 km', 'Saímos da MEVAM pela Pedro Elmer e seguimos pela Quissamã, passando ao lado do Clube Palmeira, até a entrada da Gregório Cruzick.'],
-            ['Trecho 2 · 2,31 km', 'Da Gregório Cruzick, seguimos pela José Timóteo Caldara, junto à Ponte de Ferro, e pela João de Farias até a Bernardo Proença.'],
-            ['Trecho 3 · 1,32 km', 'Da Bernardo Proença, acessamos a Hyvio Naliato e chegamos à Bernardo Vasconcelos, na altura da Dual Elétrica.'],
-            ['Trecho 4 · 1,60 km', 'Seguimos pela Estrada de Cascatinha, passamos pela Guilherme Daumas Nunes e pela Machado Fagundes e descemos a Francisco Framback para cruzar a linha de chegada na MEVAM.'],
-          ].map(([title, text]) => (
-            <Box key={title} sx={{ mb: 1.5 }}>
-              <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#19B8D2' }}>{title}</Typography>
-              <Typography variant="body2" sx={{ color: '#44506B' }}>{text}</Typography>
-            </Box>
-          ))}
-        </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={() => setPercursoOpen(false)} variant="contained">Fechar</Button>
         </DialogActions>
       </Dialog>
     </Box>
