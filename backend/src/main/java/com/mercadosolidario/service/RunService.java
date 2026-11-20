@@ -337,6 +337,23 @@ public class RunService {
         return toAdmin(saved);
     }
 
+    /** Edição de dados cadastrais pela equipe (nome, contato, tamanho da camisa). */
+    @Transactional
+    public AdminRunRegistrationResponse update(Long id, UpdateRunRegistrationRequest request) {
+        RunRegistration registration = registrationRepository.findByIdForUpdate(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Inscrição não encontrada"));
+        if (request.fullName() == null || request.fullName().isBlank()) {
+            throw new IllegalArgumentException("Nome é obrigatório.");
+        }
+        registration.setFullName(request.fullName().trim());
+        registration.setEmail(trimToNull(request.email()));
+        registration.setPhone(trimToNull(request.phone()));
+        registration.setShirtSize(trimToNull(request.shirtSize()));
+        audit("RUN_REGISTRATION_UPDATED", registration.getId(),
+            "name=" + registration.getFullName() + ",shirt=" + registration.getShirtSize());
+        return toAdmin(registrationRepository.save(registration));
+    }
+
     /** Envia e-mail de retentativa para inscrito pendente (instabilidade no pagamento). */
     @Transactional(readOnly = true)
     public void sendRetryEmail(Long id) {

@@ -8,6 +8,10 @@ import {
   Chip,
   CircularProgress,
   Container,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   Grid,
   IconButton,
   MenuItem,
@@ -52,6 +56,9 @@ function RunRegistrationsPage() {
   const [filterStatus, setFilterStatus] = useState('')
   const [filterText, setFilterText] = useState('')
   const [acting, setActing] = useState<number | null>(null)
+  const [editTarget, setEditTarget] = useState<AdminRunRegistration | null>(null)
+  const [editForm, setEditForm] = useState({ fullName: '', email: '', phone: '', shirtSize: '' })
+  const [savingEdit, setSavingEdit] = useState(false)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -212,6 +219,37 @@ function RunRegistrationsPage() {
       setError(getApiErrorMessage(claimError, 'Não foi possível vincular o pagamento.'))
     } finally {
       setActing(null)
+    }
+  }
+
+  const openEdit = (r: AdminRunRegistration) => {
+    setEditTarget(r)
+    setEditForm({
+      fullName: r.fullName,
+      email: r.email ?? '',
+      phone: r.phone ?? '',
+      shirtSize: r.shirtSize ?? '',
+    })
+  }
+
+  const saveEdit = async () => {
+    if (!editTarget) return
+    setSavingEdit(true)
+    setError('')
+    try {
+      await runService.update(editTarget.id, {
+        fullName: editForm.fullName,
+        email: editForm.email || undefined,
+        phone: editForm.phone || undefined,
+        shirtSize: editForm.shirtSize || undefined,
+      })
+      setMessage('Inscrição atualizada.')
+      setEditTarget(null)
+      await load()
+    } catch (editError) {
+      setError(getApiErrorMessage(editError, 'Não foi possível salvar.'))
+    } finally {
+      setSavingEdit(false)
     }
   }
 
@@ -416,6 +454,12 @@ function RunRegistrationsPage() {
                             </Button>
                           </Stack>
                         )}
+                        {isAdmin && (
+                          <Button size="small" variant="text" color="inherit"
+                            onClick={() => openEdit(r)} sx={{ mt: 0.5, alignSelf: 'flex-start' }}>
+                            Editar dados
+                          </Button>
+                        )}
                         {r.status === 'PAGA' && (
                           <Stack direction="row" gap={1} sx={{ mt: 1 }}>
                             {whatsappLink(r) && (
@@ -448,6 +492,31 @@ function RunRegistrationsPage() {
           </>
         )}
       </Container>
+
+      <Dialog open={editTarget !== null} onClose={() => setEditTarget(null)} maxWidth="xs" fullWidth>
+        <DialogTitle>Editar inscrição #{editTarget?.id}</DialogTitle>
+        <DialogContent dividers>
+          <Stack spacing={2} sx={{ mt: 1 }}>
+            <TextField required fullWidth label="Nome completo" value={editForm.fullName}
+              onChange={(e) => setEditForm({ ...editForm, fullName: e.target.value })} />
+            <TextField fullWidth label="E-mail" type="email" value={editForm.email}
+              onChange={(e) => setEditForm({ ...editForm, email: e.target.value })} />
+            <TextField fullWidth label="Telefone/WhatsApp" value={editForm.phone}
+              onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })} />
+            <TextField fullWidth select label="Tamanho da camisa" value={editForm.shirtSize}
+              onChange={(e) => setEditForm({ ...editForm, shirtSize: e.target.value })}>
+              <MenuItem value="">Não informado</MenuItem>
+              {['P', 'M', 'G', 'GG', 'XG'].map((s) => <MenuItem key={s} value={s}>{s}</MenuItem>)}
+            </TextField>
+          </Stack>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => setEditTarget(null)} disabled={savingEdit}>Cancelar</Button>
+          <Button onClick={() => void saveEdit()} variant="contained" disabled={savingEdit || !editForm.fullName.trim()}>
+            {savingEdit ? 'Salvando…' : 'Salvar'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   )
 }

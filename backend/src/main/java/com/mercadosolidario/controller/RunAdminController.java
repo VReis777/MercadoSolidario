@@ -1,6 +1,7 @@
 package com.mercadosolidario.controller;
 
 import com.mercadosolidario.dto.run.RunDtos.AdminRunRegistrationResponse;
+import com.mercadosolidario.dto.run.RunDtos.UpdateRunRegistrationRequest;
 import com.mercadosolidario.dto.run.RunDtos.RunStatusResponse;
 import com.mercadosolidario.dto.run.RunDtos.RunVerifyResponse;
 import com.mercadosolidario.service.RunService;
@@ -11,6 +12,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -39,6 +41,13 @@ public class RunAdminController {
     @PreAuthorize("hasRole('ADMIN')")
     public RunStatusResponse cancel(@PathVariable Long id) {
         return runService.cancel(id);
+    }
+
+    @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'RH_TESOURARIA')")
+    public AdminRunRegistrationResponse update(@PathVariable Long id,
+                                               @RequestBody UpdateRunRegistrationRequest request) {
+        return runService.update(id, request);
     }
 
     @DeleteMapping("/{id}")

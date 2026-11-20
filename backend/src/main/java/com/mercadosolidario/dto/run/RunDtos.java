@@ -98,4 +98,12 @@ public class RunDtos {
         String paymentRef,
         BigDecimal netAmount
     ) {}
+
+    /** Edição administrativa de dados cadastrais (não mexe em pagamento/status). */
+    public record UpdateRunRegistrationRequest(
+        String fullName,
+        String email,
+        String phone,
+        String shirtSize
+    ) {}
 }
