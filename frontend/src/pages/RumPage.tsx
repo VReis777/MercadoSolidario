@@ -19,6 +19,7 @@ import {
 import DirectionsRunIcon from '@mui/icons-material/DirectionsRun'
 import DirectionsWalkIcon from '@mui/icons-material/DirectionsWalk'
 import EmojiEventsIcon from '@mui/icons-material/EmojiEvents'
+import MapIcon from '@mui/icons-material/Map'
 import CheckCircleIcon from '@mui/icons-material/CheckCircle'
 import ContentCopyIcon from '@mui/icons-material/ContentCopy'
 import { useNavigate } from 'react-router-dom'
@@ -232,9 +233,13 @@ function RumPage() {
                 </Button>
                 {modality.modality === '7KM' && (
                   <Button
-                    variant="outlined"
+                    variant="contained"
+                    startIcon={<MapIcon />}
                     onClick={() => setPercursoOpen(true)}
-                    sx={{ mt: 1.5, fontWeight: 700, color: '#19B8D2', borderColor: '#19B8D2' }}
+                    sx={{
+                      mt: 1.5, fontWeight: 700, width: '100%',
+                      bgcolor: '#19B8D2', '&:hover': { bgcolor: '#1490A8' },
+                    }}
                   >
                     Conheça o percurso
                   </Button>
