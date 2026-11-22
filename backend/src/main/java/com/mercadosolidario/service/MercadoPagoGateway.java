@@ -229,6 +229,37 @@ public class MercadoPagoGateway implements RunPaymentGateway {
                 payment.path("external_reference").asText(null)));
     }
 
+    /** Pagador de um pagamento aprovado, consultado pelo ID do pagamento. */
+    public record PayerInfo(String email, String name) {}
+
+    /**
+     * E-mail/nome do pagador de um pagamento aprovado — usado para
+     * atribuir automaticamente pagamentos cuja external_reference está
+     * vazia ou aponta para um ID de banco antigo.
+     */
+    public Optional<PayerInfo> approvedPayerForPayment(String paymentId) {
+        try {
+            JsonNode node = getPayment(paymentId);
+            if (node == null || !"approved".equals(node.path("status").asText())) {
+                return Optional.empty();
+            }
+            JsonNode payer = node.path("payer");
+            String name = (payer.path("first_name").asText("") + " "
+                + payer.path("last_name").asText("")).trim();
+            String email = payer.path("email").asText(null);
+            boolean usableEmail = email != null && email.contains("@")
+                && !email.matches("X+");
+            if (!usableEmail && name.isEmpty()) {
+                return Optional.empty();
+            }
+            return Optional.of(new PayerInfo(usableEmail ? email : null,
+                name.isEmpty() ? null : name));
+        } catch (Exception exception) {
+            log.warn("Mercado Pago: falha ao consultar pagador do pagamento {}.", paymentId);
+            return Optional.empty();
+        }
+    }
+
     /**
      * Dados de um pagamento aprovado consultado pelo ID do pagamento —
      * usado no vínculo manual quando o external_reference é de um ID

@@ -8,6 +8,7 @@ import PeopleIcon from '@mui/icons-material/People'
 import PriorityHighIcon from '@mui/icons-material/PriorityHigh'
 import PixIcon from '@mui/icons-material/Pix'
 import AddIcon from '@mui/icons-material/Add'
+import BackupIcon from '@mui/icons-material/Backup'
 import PageShell from '../components/PageShell'
 import api from '../services/api'
 import { WelcomeSlot } from '../services/serviceRequestService'
@@ -48,6 +49,7 @@ function SettingsPage() {
   const [siteSaving, setSiteSaving] = useState(false)
   const [siteMessage, setSiteMessage] = useState('')
   const [siteError, setSiteError] = useState('')
+  const [exporting, setExporting] = useState(false)
 
   const loadSlots = useCallback(async () => {
     setSlotsLoading(true)
@@ -125,6 +127,31 @@ function SettingsPage() {
     }
   }
 
+  const exportDatabase = async () => {
+    if (exporting) return
+    setExporting(true)
+    setSiteError('')
+    setSiteMessage('')
+    try {
+      const response = await api.get('/admin/export', { responseType: 'blob' })
+      const url = URL.createObjectURL(response.data as Blob)
+      const link = document.createElement('a')
+      link.href = url
+      const disposition = response.headers['content-disposition'] as string | undefined
+      const match = disposition?.match(/filename="?([^";]+)"?/)
+      link.download = match?.[1] ?? 'mercado-solidario-backup.json'
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      URL.revokeObjectURL(url)
+      setSiteMessage('Backup do banco baixado com sucesso.')
+    } catch (e) {
+      setSiteError(getApiErrorMessage(e, 'Não foi possível exportar o banco.'))
+    } finally {
+      setExporting(false)
+    }
+  }
+
   const activeCount = slots.filter((s) => s.active).length
 
   return (
@@ -180,6 +207,19 @@ function SettingsPage() {
             </Button>
           </Stack>
         </Box>
+      </Paper>
+
+      <Paper sx={{ p: 2.5, mb: 3 }}>
+        <Typography variant="h6" gutterBottom>Backup do banco de dados</Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+          Baixa um arquivo JSON com todas as tabelas do sistema (famílias, doações, inscrições,
+          usuários, movimentações etc.). Use como cópia de segurança — contém dados pessoais,
+          guarde em local seguro.
+        </Typography>
+        <Button variant="outlined" color="warning" startIcon={<BackupIcon />}
+          onClick={() => void exportDatabase()} disabled={exporting}>
+          {exporting ? 'Exportando…' : 'Exportar banco completo (JSON)'}
+        </Button>
       </Paper>
 
       <Paper sx={{ p: 2.5 }}>

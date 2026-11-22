@@ -224,29 +224,119 @@ public class RunService {
         if (!paymentGateway.isEnabled() || paymentId == null || paymentId.isBlank()) {
             return;
         }
-        paymentGateway.approvedExternalReference(paymentId).ifPresent(externalRef -> {
-            // Doações avulsas usam external_reference "DON-<id>".
-            if (externalRef != null && externalRef.startsWith("DON-")) {
-                try {
-                    donationService.confirmCardPayment(Long.valueOf(externalRef.substring(4)));
-                } catch (NumberFormatException ignored) {
-                    // referência inesperada — ignora.
-                }
+        String externalRef = paymentGateway.approvedExternalReference(paymentId).orElse(null);
+        // Doações avulsas usam external_reference "DON-<id>".
+        if (externalRef != null && externalRef.startsWith("DON-")) {
+            try {
+                donationService.confirmCardPayment(Long.valueOf(externalRef.substring(4)));
+            } catch (NumberFormatException ignored) {
+                // referência inesperada — ignora.
+            }
+            return;
+        }
+        Long registrationId = parseLong(externalRef);
+        if (registrationId != null) {
+            var direct = registrationRepository.findByIdForUpdate(registrationId)
+                .filter(r -> "PENDENTE".equals(r.getStatus()));
+            if (direct.isPresent()) {
+                RunRegistration r = direct.get();
+                r.setPaymentRef(paymentId);
+                confirmViaGateway(r, () -> paymentGateway.approvedNetReceived(paymentId));
                 return;
             }
-            try {
-                Long registrationId = Long.valueOf(externalRef);
-                registrationRepository.findByIdForUpdate(registrationId)
-                    .filter(r -> "PENDENTE".equals(r.getStatus()))
-                    .ifPresent(r -> {
-                        r.setPaymentRef(paymentId);
-                        confirmViaGateway(r,
-                            () -> paymentGateway.approvedNetReceived(paymentId));
-                    });
-            } catch (NumberFormatException ignored) {
-                // external_reference inesperada — ignora o webhook.
+            // A referência aponta para inscrição existente que não está
+            // pendente (paga/cancelada): o dinheiro é dela — não reatribuir.
+            if (registrationRepository.findById(registrationId)
+                    .filter(r -> !"CANCELADA".equals(r.getStatus()))
+                    .isPresent()) {
+                return;
             }
+        }
+        // Referência vazia/inválida ou apontando para ID inexistente:
+        // tenta atribuir pelo pagador (e-mail ou nome único).
+        linkByPayer(paymentId);
+    }
+
+    /**
+     * Atribuição automática por pagador: quando o external_reference não
+     * resolve (vazio ou ID de banco antigo), casa o pagamento aprovado
+     * com a única inscrição PENDENTE do e-mail/nome do pagador.
+     * Ambíguo ou sem candidato → fica para reconciliação manual.
+     */
+    private void linkByPayer(String paymentId) {
+        if (!(paymentGateway instanceof MercadoPagoGateway mp) || !mp.isEnabled()) {
+            return;
+        }
+        if (registrationRepository.findByPaymentRef(paymentId).isPresent()) {
+            return; // pagamento já baixado em outra inscrição
+        }
+        mp.approvedPayerForPayment(paymentId).ifPresent(payer -> {
+            List<RunRegistration> pendentes = registrationRepository.findByStatus("PENDENTE");
+            RunRegistration target = null;
+            if (payer.email() != null) {
+                List<RunRegistration> byEmail = pendentes.stream()
+                    .filter(r -> payer.email().equalsIgnoreCase(
+                        r.getEmail() != null ? r.getEmail() : ""))
+                    .toList();
+                if (byEmail.size() == 1) {
+                    target = byEmail.get(0);
+                } else if (byEmail.size() > 1) {
+                    audit("RUN_PAYMENT_LINK_SKIPPED", null,
+                        "paymentRef=" + paymentId + ",e-mail ambíguo=" + payer.email());
+                    return;
+                }
+            }
+            if (target == null && payer.name() != null) {
+                Set<String> wanted = nameTokens(payer.name());
+                if (!wanted.isEmpty()) {
+                    List<RunRegistration> byName = pendentes.stream()
+                        .filter(r -> {
+                            Set<String> have = nameTokens(r.getFullName());
+                            return !have.isEmpty()
+                                && (have.containsAll(wanted) || wanted.containsAll(have));
+                        })
+                        .toList();
+                    if (byName.size() == 1) {
+                        target = byName.get(0);
+                    } else if (byName.size() > 1) {
+                        audit("RUN_PAYMENT_LINK_SKIPPED", null,
+                            "paymentRef=" + paymentId + ",nome ambíguo=" + payer.name());
+                        return;
+                    }
+                }
+            }
+            if (target == null) {
+                audit("RUN_PAYMENT_LINK_SKIPPED", null,
+                    "paymentRef=" + paymentId + ",sem inscrito compatível"
+                        + (payer.email() != null ? ",email=" + payer.email() : "")
+                        + (payer.name() != null ? ",nome=" + payer.name() : ""));
+                return;
+            }
+            final RunRegistration chosen = target;
+            mp.approvedPaymentInfoById(paymentId).ifPresent(info -> {
+                chosen.setPaymentRef(paymentId);
+                audit("RUN_PAYMENT_LINKED_BY_PAYER", chosen.getId(),
+                    "paymentRef=" + paymentId
+                        + (payer.email() != null ? ",payerEmail=" + payer.email() : "")
+                        + (payer.name() != null ? ",payerName=" + payer.name() : ""));
+                applyGatewayPayment(chosen, info);
+            });
         });
+    }
+
+    private static Set<String> nameTokens(String name) {
+        if (name == null || name.isBlank()) {
+            return Set.of();
+        }
+        String normalized = java.text.Normalizer.normalize(name, java.text.Normalizer.Form.NFD)
+            .replaceAll("\\p{M}", "").toLowerCase(java.util.Locale.ROOT);
+        Set<String> tokens = new java.util.LinkedHashSet<>();
+        for (String token : normalized.split("[^a-z0-9]+")) {
+            if (token.length() >= 2) {
+                tokens.add(token);
+            }
+        }
+        return tokens;
     }
 
     /** Confirmação manual (PIX com comprovante) feita por admin enquanto não houver gateway. */
