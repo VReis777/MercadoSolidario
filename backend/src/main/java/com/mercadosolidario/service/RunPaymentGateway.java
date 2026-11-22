@@ -65,8 +65,8 @@ public interface RunPaymentGateway {
         return Optional.empty();
     }
 
-    /** Pagamento aprovado encontrado pelo external_reference, com dados para reatribuição. */
-    record ApprovedPaymentInfo(String paymentId, BigDecimal netAmount, String paymentMethod) {}
+    /** Pagamento aprovado encontrado pelo external_reference, com dados para reatribuição. amount = valor bruto cobrado. */
+    record ApprovedPaymentInfo(String paymentId, BigDecimal netAmount, String paymentMethod, BigDecimal amount) {}
 
     /**
      * Detalhes do pagamento aprovado com esta external_reference —

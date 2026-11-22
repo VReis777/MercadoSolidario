@@ -274,9 +274,11 @@ public class RunService {
         RunRegistration registration = registrationRepository.findByIdForUpdate(id)
             .orElseThrow(() -> new ResourceNotFoundException("Inscrição não encontrada"));
         if ("PENDENTE".equals(registration.getStatus()) && paymentGateway.isEnabled()) {
-            if (paymentGateway.hasApprovedPaymentFor(registration.getId().toString())) {
-                confirmViaGateway(registration,
-                    () -> paymentGateway.approvedNetReceivedForReference(registration.getId().toString()));
+            RunPaymentGateway.ApprovedPaymentInfo byRef = paymentGateway
+                .approvedPaymentInfoForReference(registration.getId().toString()).orElse(null);
+            if (byRef != null) {
+                registration.setPaymentRef(byRef.paymentId());
+                applyGatewayPayment(registration, byRef);
             } else if (paymentGateway instanceof MercadoPagoGateway mp) {
                 mp.approvedPaymentForPayerEmail(registration.getEmail()).ifPresent(match -> {
                     // Segurança: se a referência do pagamento aponta para uma
@@ -292,17 +294,46 @@ public class RunService {
                         return;
                     }
                     registration.setPaymentRef(match.paymentId());
-                    if (match.paymentMethod() != null && !match.paymentMethod().isBlank()) {
-                        registration.setPaymentMethod(match.paymentMethod());
-                    }
                     audit("RUN_PAYMENT_SYNCED_BY_PAYER", registration.getId(),
                         "paymentRef=" + match.paymentId() + ",externalRef=" + match.externalReference());
-                    markPaid(registration,
-                        match.netAmount() != null ? match.netAmount() : estimateNet(registration));
+                    applyGatewayPayment(registration, new RunPaymentGateway.ApprovedPaymentInfo(
+                        match.paymentId(), match.netAmount(), match.paymentMethod(), match.amount()));
                 });
             }
         }
         return toAdmin(registrationRepository.save(registration));
+    }
+
+    /** Aplica método real, doação extra implícita (legado) e baixa do pagamento aprovado. */
+    private void applyGatewayPayment(RunRegistration registration,
+                                     RunPaymentGateway.ApprovedPaymentInfo info) {
+        if (info.paymentMethod() != null && !info.paymentMethod().isBlank()
+                && !info.paymentMethod().equals(registration.getPaymentMethod())) {
+            audit("RUN_PAYMENT_METHOD_CORRECTED", registration.getId(),
+                "de=" + registration.getPaymentMethod() + ",para=" + info.paymentMethod());
+            registration.setPaymentMethod(info.paymentMethod());
+        }
+        applyLegacyExtraDonation(registration, info.amount());
+        markPaid(registration, info.netAmount() != null ? info.netAmount() : estimateNet(registration));
+    }
+
+    /**
+     * Inscrição legada: o valor bruto cobrado no MP antigo pode incluir
+     * doação extra além da inscrição — a diferença vira extraDonation,
+     * para a doação financeira registrar o total real pago.
+     */
+    private void applyLegacyExtraDonation(RunRegistration registration, BigDecimal gross) {
+        if (!Boolean.TRUE.equals(registration.getLegacy()) || gross == null) {
+            return;
+        }
+        BigDecimal base = registration.getAmount() != null ? registration.getAmount() : BigDecimal.ZERO;
+        BigDecimal extra = gross.subtract(base);
+        if (extra.signum() > 0
+                && (registration.getExtraDonation() == null
+                    || registration.getExtraDonation().signum() <= 0)) {
+            registration.setExtraDonation(extra);
+            audit("RUN_EXTRA_DONATION_IMPORTED", registration.getId(), "extra=" + extra.toPlainString());
+        }
     }
 
     private static String sha256Hex(String value) {
@@ -438,7 +469,7 @@ public class RunService {
             newId, name, emailNorm, trimToNull(row.phone()), row.birthDate(), modality,
             trimToNull(row.shirtSize()), RunPaymentGateway.reais(priceCents()), method, status,
             paid ? LocalDateTime.now() : null, null, checkin,
-            UUID.randomUUID().toString().replace("-", ""), paid, row.createdAt() != null ? row.createdAt() : LocalDateTime.now());
+            UUID.randomUUID().toString().replace("-", ""), true, row.createdAt() != null ? row.createdAt() : LocalDateTime.now());
         if (paid) {
             RunRegistration saved = registrationRepository.findById(newId).orElseThrow();
             markPaid(saved, estimateNet(saved));
@@ -479,6 +510,7 @@ public class RunService {
         audit("RUN_PAYMENT_CLAIMED", target.getId(),
             "from=" + fromId + ",paymentRef=" + info.paymentId()
                 + ",method=" + target.getPaymentMethod());
+        applyLegacyExtraDonation(target, info.amount());
         markPaid(target, info.netAmount() != null ? info.netAmount() : estimateNet(target));
         return toAdmin(registrationRepository.save(target));
     }

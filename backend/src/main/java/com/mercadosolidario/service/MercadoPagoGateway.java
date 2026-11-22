@@ -217,7 +217,9 @@ public class MercadoPagoGateway implements RunPaymentGateway {
             new ApprovedPaymentInfo(
                 payment.path("id").asText(null),
                 netReceived(payment).orElse(null),
-                paymentMethodOf(payment)));
+                paymentMethodOf(payment),
+                payment.path("transaction_amount").isNumber()
+                    ? payment.path("transaction_amount").decimalValue() : null));
     }
 
     private Optional<JsonNode> approvedPaymentForReference(String externalReference) {
@@ -376,9 +378,9 @@ public class MercadoPagoGateway implements RunPaymentGateway {
         }
     }
 
-    /** Pagamento aprovado encontrado pelo e-mail do pagador (external_reference numérica = inscrição). */
+    /** Pagamento aprovado encontrado pelo e-mail do pagador (external_reference numérica = inscrição). amount = valor bruto cobrado. */
     public record PayerPaymentMatch(String paymentId, String externalReference,
-                                    BigDecimal netAmount, String paymentMethod) {}
+                                    BigDecimal netAmount, String paymentMethod, BigDecimal amount) {}
 
     public Optional<PayerPaymentMatch> approvedPaymentForPayerEmail(String email) {
         if (email == null || email.isBlank()) {
@@ -404,11 +406,13 @@ public class MercadoPagoGateway implements RunPaymentGateway {
                 if (!email.equalsIgnoreCase(payerEmail) || !external.matches("\\d+")) {
                     continue;
                 }
+                JsonNode amount = p.path("transaction_amount");
                 return Optional.of(new PayerPaymentMatch(
                     p.path("id").asText(null),
                     external,
                     netReceived(p).orElse(null),
-                    paymentMethodOf(p)));
+                    paymentMethodOf(p),
+                    amount.isNumber() ? amount.decimalValue() : null));
             }
             return Optional.empty();
         } catch (Exception exception) {

@@ -635,7 +635,9 @@ function RunRegistrationsPage() {
               <strong>Inscrições</strong> — uma por linha, campos separados por <code>;</code>:<br />
               <code>id;nome;email;telefone;nascimento;modalidade;camisa;status;metodo;criado_em</code><br />
               Ex.: <code>32;Daniela de S Domingos;email@x.com;;1983-05-26;3KM;G;PAGA;PIX;</code><br />
-              id vazio = automático · status: PENDENTE ou PAGA · metodo: PIX ou CARTAO · campos podem ficar vazios.
+              id vazio = automático · status: PENDENTE ou PAGA · metodo: PIX ou CARTAO · campos podem ficar vazios.<br />
+              <strong>Dica:</strong> para recuperar inscrições antigas, importe como PENDENTE e depois use
+              "Sincronizar com MP" em cada uma — o Mercado Pago confirma método, valor e quem realmente pagou.
             </Alert>
             <TextField multiline minRows={8} fullWidth label="Inscrições" value={importText}
               onChange={(e) => setImportText(e.target.value)}
