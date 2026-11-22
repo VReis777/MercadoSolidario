@@ -310,6 +310,7 @@ public class RunService {
                     "paymentRef=" + paymentId + ",sem inscrito compatível"
                         + (payer.email() != null ? ",email=" + payer.email() : "")
                         + (payer.name() != null ? ",nome=" + payer.name() : ""));
+                notifyOrphanPayment(mp, paymentId, payer);
                 return;
             }
             final RunRegistration chosen = target;
@@ -322,6 +323,52 @@ public class RunService {
                 applyGatewayPayment(chosen, info);
             });
         });
+    }
+
+    /**
+     * Pagamento aprovado no MP sem inscrição correspondente no banco —
+     * avisa a equipe para vincular manualmente antes que o dinheiro fique órfão.
+     */
+    private void notifyOrphanPayment(MercadoPagoGateway mp, String paymentId,
+                                     MercadoPagoGateway.PayerInfo payer) {
+        Set<String> recipients = new LinkedHashSet<>();
+        userRepository.findActiveByRoleNames(List.of("ADMIN", "RH_TESOURARIA")).stream()
+            .map(u -> u.getEmail())
+            .filter(email -> email != null && !email.isBlank())
+            .forEach(recipients::add);
+        if (fromAddress != null && !fromAddress.isBlank()) {
+            recipients.add(fromAddress);
+        }
+        if (recipients.isEmpty()) {
+            return;
+        }
+        try {
+            mp.approvedPaymentInfoById(paymentId)
+                .ifPresent(info -> emailSender.sendToMany(recipients.toArray(String[]::new),
+                    "Atenção: pagamento do Run sem inscrição correspondente",
+                    """
+                    Um pagamento foi aprovado no Mercado Pago mas não foi possível
+                    identificar a inscrição correspondente no sistema.
+
+                    Pagamento MP: %s
+                    Valor bruto: R$ %s
+                    Método: %s
+                    Referência externa: %s
+                    Pagador: %s <%s>
+
+                    Ação necessária: abra /inscritosrum → "Pagamentos no MP" e
+                    vincule o pagamento à inscrição correta ("Colar ID do pagto.")
+                    ou cadastre a inscrição se a pessoa não estiver na lista.
+                    """.formatted(
+                        info.paymentId(),
+                        info.amount() != null ? info.amount().toPlainString() : "?",
+                        info.paymentMethod() != null ? info.paymentMethod() : "?",
+                        info.externalReference() != null ? info.externalReference() : "—",
+                        payer.name() != null ? payer.name() : "—",
+                        payer.email() != null ? payer.email() : "—")));
+        } catch (RuntimeException exception) {
+            log.warn("Pagamento órfão detectado mas e-mail à equipe não foi enviado.");
+        }
     }
 
     private static Set<String> nameTokens(String name) {
