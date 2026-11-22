@@ -407,41 +407,50 @@ public class MercadoPagoGateway implements RunPaymentGateway {
      * reconciliar external_reference ↔ pagador.
      */
     public java.util.List<com.mercadosolidario.dto.run.RunDtos.MpPaymentSummary> recentApprovedPayments() {
-        try {
-            String url = API + "/v1/payments/search?sort=date_created&criteria=desc&limit=50";
-            HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(url))
-                .header("Authorization", "Bearer " + accessToken)
-                .timeout(Duration.ofSeconds(20))
-                .GET().build();
-            HttpResponse<String> response = http.send(request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
-            if (response.statusCode() != 200) {
-                return java.util.List.of();
-            }
-            java.util.List<com.mercadosolidario.dto.run.RunDtos.MpPaymentSummary> out = new java.util.ArrayList<>();
-            for (JsonNode p : mapper.readTree(response.body()).path("results")) {
-                if (!"approved".equals(p.path("status").asText())) {
-                    continue;
+        java.util.List<com.mercadosolidario.dto.run.RunDtos.MpPaymentSummary> out = new java.util.ArrayList<>();
+        // Pagina até esgotar (teto de segurança de 1000 pagamentos).
+        for (int offset = 0; offset < 1000; offset += 100) {
+            try {
+                String url = API + "/v1/payments/search?sort=date_created&criteria=desc&limit=100&offset=" + offset;
+                HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(url))
+                    .header("Authorization", "Bearer " + accessToken)
+                    .timeout(Duration.ofSeconds(20))
+                    .GET().build();
+                HttpResponse<String> response = http.send(request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+                if (response.statusCode() != 200) {
+                    break;
                 }
-                JsonNode amount = p.path("transaction_amount");
-                JsonNode payer = p.path("payer");
-                String payerName = (payer.path("first_name").asText("") + " "
-                    + payer.path("last_name").asText("")).trim();
-                out.add(new com.mercadosolidario.dto.run.RunDtos.MpPaymentSummary(
-                    p.path("id").asText(null),
-                    p.path("external_reference").asText(null),
-                    amount.isNumber() ? amount.decimalValue() : null,
-                    paymentMethodOf(p),
-                    p.path("payer").path("email").asText(null),
-                    payerName.isEmpty() ? null : payerName,
-                    p.path("status").asText(null),
-                    p.path("date_created").asText(null)));
+                JsonNode results = mapper.readTree(response.body()).path("results");
+                int pageCount = 0;
+                for (JsonNode p : results) {
+                    pageCount++;
+                    if (!"approved".equals(p.path("status").asText())) {
+                        continue;
+                    }
+                    JsonNode amount = p.path("transaction_amount");
+                    JsonNode payer = p.path("payer");
+                    String payerName = (payer.path("first_name").asText("") + " "
+                        + payer.path("last_name").asText("")).trim();
+                    out.add(new com.mercadosolidario.dto.run.RunDtos.MpPaymentSummary(
+                        p.path("id").asText(null),
+                        p.path("external_reference").asText(null),
+                        amount.isNumber() ? amount.decimalValue() : null,
+                        paymentMethodOf(p),
+                        p.path("payer").path("email").asText(null),
+                        payerName.isEmpty() ? null : payerName,
+                        p.path("status").asText(null),
+                        p.path("date_created").asText(null)));
+                }
+                if (pageCount < 100) {
+                    break;
+                }
+            } catch (Exception exception) {
+                log.warn("Mercado Pago: falha ao listar pagamentos recentes.");
+                break;
             }
-            return out;
-        } catch (Exception exception) {
-            log.warn("Mercado Pago: falha ao listar pagamentos recentes.");
-            return java.util.List.of();
         }
+        return out;
     }
 
     /** Pagamento aprovado encontrado pelo inscrito. amount = valor bruto cobrado. */

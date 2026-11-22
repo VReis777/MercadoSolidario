@@ -1112,19 +1112,32 @@ public class RunService {
             ? registration.getEmail() : registration.getPhone());
         donation.setStatus(DonationStatus.PAGA);
         donation.setConfirmationDate(registration.getPaidAt());
+        donation.setObservation(runDonationLabel(registration));
         donationRepository.save(donation);
 
         notifyPaid(registration);
     }
 
+    /** Discrimina na doação o que é inscrição do Run e o que é doação extra. */
+    private String runDonationLabel(RunRegistration r) {
+        String base = "Inscrição Mercado Solidário Run — " + r.getModality()
+            + " (R$ " + (r.getAmount() != null ? r.getAmount().toPlainString() : "?") + ")";
+        return r.getExtraDonation() != null && r.getExtraDonation().signum() > 0
+            ? base + " + Doação extra (R$ " + r.getExtraDonation().toPlainString() + ")"
+            : base;
+    }
+
     private void notifyPaid(RunRegistration registration) {
+        // Notificação à equipe vai só para o e-mail principal — os demais
+        // avisos (pendência, pagamento órfão) continuam indo aos admins.
         Set<String> recipients = new LinkedHashSet<>();
-        userRepository.findActiveByRoleNames(List.of("ADMIN", "RH_TESOURARIA")).stream()
-            .map(u -> u.getEmail())
-            .filter(email -> email != null && !email.isBlank())
-            .forEach(recipients::add);
         if (fromAddress != null && !fromAddress.isBlank()) {
             recipients.add(fromAddress);
+        } else {
+            userRepository.findActiveByRoleNames(List.of("ADMIN", "RH_TESOURARIA")).stream()
+                .map(u -> u.getEmail())
+                .filter(email -> email != null && !email.isBlank())
+                .forEach(recipients::add);
         }
         try {
             if (!recipients.isEmpty()) {
