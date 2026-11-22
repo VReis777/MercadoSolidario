@@ -329,6 +329,11 @@ public class RunService {
             return;
         }
         BigDecimal base = registration.getAmount() != null ? registration.getAmount() : BigDecimal.ZERO;
+        // No cartão o bruto inclui a taxa de R$7 que cobre o gateway —
+        // não é doação extra.
+        if ("CARTAO".equals(registration.getPaymentMethod())) {
+            base = base.add(RunRegistration.CARD_SURCHARGE);
+        }
         BigDecimal extra = gross.subtract(base);
         if (extra.signum() > 0
                 && (registration.getExtraDonation() == null
