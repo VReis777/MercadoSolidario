@@ -70,6 +70,7 @@ function RunRegistrationsPage() {
     paymentMethod: string | null; payerEmail: string | null; status: string | null; dateCreated: string | null
   }[]>([])
   const [mpLoading, setMpLoading] = useState(false)
+  const [bulkBusy, setBulkBusy] = useState(false)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -165,6 +166,49 @@ function RunRegistrationsPage() {
     } finally {
       setActing(null)
     }
+  }
+
+  const estornarLegado = async () => {
+    if (!window.confirm(
+      'Estornar TODAS as inscrições pagas que vieram da importação? ' +
+      'Elas voltam para PENDENTE e as doações automáticas de R$100 são removidas. ' +
+      'Depois use "Sincronizar pendentes" para confirmar pelo Mercado Pago real.')) return
+    setBulkBusy(true)
+    setError('')
+    try {
+      const res = await runService.estornarLegado()
+      setMessage(`${res.reverted} inscrição(ões) estornada(s) — agora é só sincronizar com o Mercado Pago.`)
+      await load()
+    } catch (estornoError) {
+      setError(getApiErrorMessage(estornoError, 'Não foi possível estornar as importadas.'))
+    } finally {
+      setBulkBusy(false)
+    }
+  }
+
+  const syncAllPending = async () => {
+    const pending = registrations.filter((r) => r.status === 'PENDENTE')
+    if (pending.length === 0) {
+      setError('Não há inscrições pendentes para sincronizar.')
+      return
+    }
+    setBulkBusy(true)
+    setError('')
+    let confirmed = 0
+    let errors = 0
+    for (const r of pending) {
+      try {
+        const reg = await runService.syncPayment(r.id)
+        if (reg.status === 'PAGA') confirmed++
+      } catch {
+        errors++
+      }
+    }
+    setMessage(
+      `Sincronização concluída: ${confirmed} pagamento(s) confirmado(s) no Mercado Pago, ` +
+      `${pending.length - confirmed - errors} sem pagamento aprovado, ${errors} erro(s).`)
+    await load()
+    setBulkBusy(false)
   }
 
   const openMpPayments = async () => {
@@ -477,6 +521,18 @@ function RunRegistrationsPage() {
               {isAdmin && (
                 <Button variant="outlined" color="info" onClick={() => void openMpPayments()}>
                   Pagamentos no MP
+                </Button>
+              )}
+              {isAdmin && (
+                <Button variant="outlined" color="warning" disabled={bulkBusy}
+                  onClick={() => void estornarLegado()}>
+                  {bulkBusy ? 'Processando…' : 'Estornar importados'}
+                </Button>
+              )}
+              {isAdmin && (
+                <Button variant="contained" color="success" disabled={bulkBusy}
+                  onClick={() => void syncAllPending()}>
+                  {bulkBusy ? 'Sincronizando…' : 'Sincronizar pendentes'}
                 </Button>
               )}
               <Button onClick={() => void load()}>Atualizar</Button>

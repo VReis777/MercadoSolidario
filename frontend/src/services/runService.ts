@@ -163,6 +163,10 @@ const runService = {
     const { data } = await api.post<AdminRunRegistration>(`/rum/registrations/${id}/recadastrar`)
     return data
   },
+  estornarLegado: async (): Promise<{ reverted: number }> => {
+    const { data } = await api.post<{ reverted: number }>('/rum/registrations/estornar-legado')
+    return data
+  },
   importRegistrations: async (payload: {
     registrations: {
       originalId?: number | null

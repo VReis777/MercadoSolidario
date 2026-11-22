@@ -15,9 +15,15 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.text.Normalizer;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * Mercado Pago via REST (sem SDK): PIX gera cobrança com QR copia-e-cola;
@@ -378,14 +384,12 @@ public class MercadoPagoGateway implements RunPaymentGateway {
         }
     }
 
-    /** Pagamento aprovado encontrado pelo e-mail do pagador (external_reference numérica = inscrição). amount = valor bruto cobrado. */
+    /** Pagamento aprovado encontrado pelo inscrito. amount = valor bruto cobrado. */
     public record PayerPaymentMatch(String paymentId, String externalReference,
                                     BigDecimal netAmount, String paymentMethod, BigDecimal amount) {}
 
-    public Optional<PayerPaymentMatch> approvedPaymentForPayerEmail(String email) {
-        if (email == null || email.isBlank()) {
-            return Optional.empty();
-        }
+    /** Últimos pagamentos aprovados no MP (até 100, mais recentes primeiro). */
+    private List<JsonNode> approvedPayments() {
         try {
             String url = API + "/v1/payments/search?sort=date_created&criteria=desc&limit=100";
             HttpRequest request = HttpRequest.newBuilder()
@@ -395,29 +399,88 @@ public class MercadoPagoGateway implements RunPaymentGateway {
                 .GET().build();
             HttpResponse<String> response = http.send(request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
             if (response.statusCode() != 200) {
-                return Optional.empty();
+                return List.of();
             }
+            List<JsonNode> out = new ArrayList<>();
             for (JsonNode p : mapper.readTree(response.body()).path("results")) {
-                if (!"approved".equals(p.path("status").asText())) {
-                    continue;
+                if ("approved".equals(p.path("status").asText())) {
+                    out.add(p);
                 }
-                String payerEmail = p.path("payer").path("email").asText("");
-                String external = p.path("external_reference").asText("");
-                if (!email.equalsIgnoreCase(payerEmail) || !external.matches("\\d+")) {
-                    continue;
-                }
-                JsonNode amount = p.path("transaction_amount");
-                return Optional.of(new PayerPaymentMatch(
-                    p.path("id").asText(null),
-                    external,
-                    netReceived(p).orElse(null),
-                    paymentMethodOf(p),
-                    amount.isNumber() ? amount.decimalValue() : null));
             }
-            return Optional.empty();
+            return out;
         } catch (Exception exception) {
-            log.warn("Mercado Pago: falha ao buscar pagamento por e-mail do pagador.");
+            log.warn("Mercado Pago: falha ao listar pagamentos recentes.");
+            return List.of();
+        }
+    }
+
+    private PayerPaymentMatch matchOf(JsonNode p, String external) {
+        JsonNode amount = p.path("transaction_amount");
+        return new PayerPaymentMatch(
+            p.path("id").asText(null),
+            external,
+            netReceived(p).orElse(null),
+            paymentMethodOf(p),
+            amount.isNumber() ? amount.decimalValue() : null);
+    }
+
+    /**
+     * Pagamento aprovado do inscrito: primeiro tenta o e-mail do pagador;
+     * se não achar, casa pelo NOME do pagador — somente quando existe um
+     * único pagamento aprovado compatível (evita atribuir pagamento de
+     * homônimos). external_reference precisa ser numérica (id de inscrição).
+     */
+    public Optional<PayerPaymentMatch> approvedPaymentForRegistrant(String email, String fullName) {
+        List<JsonNode> approved = approvedPayments();
+        if (approved.isEmpty()) {
             return Optional.empty();
         }
+        if (email != null && !email.isBlank()) {
+            for (JsonNode p : approved) {
+                String external = p.path("external_reference").asText("");
+                if (email.equalsIgnoreCase(p.path("payer").path("email").asText(""))
+                        && external.matches("\\d+")) {
+                    return Optional.of(matchOf(p, external));
+                }
+            }
+        }
+        Set<String> wanted = nameTokens(fullName);
+        if (wanted.isEmpty()) {
+            return Optional.empty();
+        }
+        JsonNode found = null;
+        for (JsonNode p : approved) {
+            String external = p.path("external_reference").asText("");
+            if (!external.matches("\\d+")) {
+                continue;
+            }
+            String payerName = p.path("payer").path("first_name").asText("") + " "
+                + p.path("payer").path("last_name").asText("");
+            Set<String> tokens = nameTokens(payerName);
+            if (!tokens.isEmpty() && (tokens.containsAll(wanted) || wanted.containsAll(tokens))) {
+                if (found != null) {
+                    return Optional.empty();
+                }
+                found = p;
+            }
+        }
+        return found == null
+            ? Optional.empty()
+            : Optional.of(matchOf(found, found.path("external_reference").asText()));
+    }
+
+    private static Set<String> nameTokens(String name) {
+        if (name == null || name.isBlank()) {
+            return Set.of();
+        }
+        String normalized = Normalizer.normalize(name, Normalizer.Form.NFD)
+            .replaceAll("\\p{M}", "").toLowerCase(Locale.ROOT);
+        Set<String> tokens = new LinkedHashSet<>();
+        for (String token : normalized.split("[^a-z0-9]+")) {
+            if (token.length() >= 2) {
+                tokens.add(token);
+            }
+        }
+        return tokens;
     }
 }

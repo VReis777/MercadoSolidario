@@ -280,7 +280,8 @@ public class RunService {
                 registration.setPaymentRef(byRef.paymentId());
                 applyGatewayPayment(registration, byRef);
             } else if (paymentGateway instanceof MercadoPagoGateway mp) {
-                mp.approvedPaymentForPayerEmail(registration.getEmail()).ifPresent(match -> {
+                mp.approvedPaymentForRegistrant(registration.getEmail(), registration.getFullName())
+                    .ifPresent(match -> {
                     // Segurança: se a referência do pagamento aponta para uma
                     // inscrição ativa existente, o dinheiro é dela — não confirmar aqui.
                     Long refId = parseLong(match.externalReference());
@@ -704,6 +705,30 @@ public class RunService {
         if (!"PAGA".equals(registration.getStatus())) {
             throw new ConflictException("Só é possível estornar inscrição paga.");
         }
+        revertToPending(registration);
+        return toStatus(registrationRepository.save(registration));
+    }
+
+    /**
+     * Estorna em cascata todas as inscrições PAGAS importadas (legacy):
+     * volta cada uma para PENDENTE e remove a doação automática — usado
+     * para reconstruir os pagamentos a partir do Mercado Pago real.
+     */
+    @Transactional
+    public int estornarLegado() {
+        int count = 0;
+        for (RunRegistration registration : registrationRepository.findAll()) {
+            if ("PAGA".equals(registration.getStatus()) && Boolean.TRUE.equals(registration.getLegacy())) {
+                revertToPending(registration);
+                registrationRepository.save(registration);
+                count++;
+            }
+        }
+        audit("RUN_LEGACY_REVERTED", null, "count=" + count);
+        return count;
+    }
+
+    private void revertToPending(RunRegistration registration) {
         // Remove a doação criada na confirmação (mesmo doador, valor e data).
         donationRepository.findAll().stream()
             .filter(d -> d.getType() == DonationType.FINANCEIRA
@@ -723,7 +748,6 @@ public class RunService {
         registration.setPaymentRef(null);
         audit("RUN_REGISTRATION_PAYMENT_REVERTED", registration.getId(),
             "modality=" + registration.getModality() + ",name=" + registration.getFullName());
-        return toStatus(registrationRepository.save(registration));
     }
 
     /** Exclui inscrição não paga (PENDENTE ou CANCELADA) — ex.: testes e tentativas duplicadas. */

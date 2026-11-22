@@ -109,6 +109,13 @@ public class RunAdminController {
         return runService.importRegistrations(request);
     }
 
+    /** Estorna em cascata todas as inscrições pagas importadas (legacy) — volta para PENDENTE. */
+    @PostMapping("/estornar-legado")
+    @PreAuthorize("hasRole('ADMIN')")
+    public java.util.Map<String, Integer> estornarLegado() {
+        return java.util.Map.of("reverted", runService.estornarLegado());
+    }
+
     /** Últimos pagamentos aprovados no Mercado Pago (conferência/reconciliação). */
     @GetMapping("/mp-payments")
     @PreAuthorize("hasRole('ADMIN')")
