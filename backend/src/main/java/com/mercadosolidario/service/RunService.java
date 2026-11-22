@@ -684,10 +684,13 @@ public class RunService {
             ? Long.valueOf(external) : null;
         if (refId != null && !refId.equals(target.getId())) {
             // Em pagamentos antigos a referência é um ID do Neon, sem
-            // correspondência confiável — só bloqueia se o dinheiro já
-            // foi baixado em OUTRA inscrição paga (evita contagem dupla).
+            // correspondência confiável com os IDs novos — não bloqueia
+            // só por status. A trava real contra contagem dupla é o
+            // paymentRef único verificado abaixo.
             registrationRepository.findById(refId)
-                .filter(r -> "PAGA".equals(r.getStatus()))
+                .filter(r -> "PAGA".equals(r.getStatus())
+                    && info.paymentId() != null
+                    && info.paymentId().equals(r.getPaymentRef()))
                 .ifPresent(r -> {
                     throw new ConflictException(
                         "Esse pagamento já está baixado na inscrição #" + refId + " (" + r.getFullName() + ").");
