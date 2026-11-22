@@ -225,7 +225,32 @@ public class MercadoPagoGateway implements RunPaymentGateway {
                 netReceived(payment).orElse(null),
                 paymentMethodOf(payment),
                 payment.path("transaction_amount").isNumber()
-                    ? payment.path("transaction_amount").decimalValue() : null));
+                    ? payment.path("transaction_amount").decimalValue() : null,
+                payment.path("external_reference").asText(null)));
+    }
+
+    /**
+     * Dados de um pagamento aprovado consultado pelo ID do pagamento —
+     * usado no vínculo manual quando o external_reference é de um ID
+     * antigo do banco anterior (ou está vazio).
+     */
+    public Optional<ApprovedPaymentInfo> approvedPaymentInfoById(String paymentId) {
+        try {
+            JsonNode payment = getPayment(paymentId);
+            if (payment == null || !"approved".equals(payment.path("status").asText())) {
+                return Optional.empty();
+            }
+            JsonNode amount = payment.path("transaction_amount");
+            return Optional.of(new ApprovedPaymentInfo(
+                payment.path("id").asText(null),
+                netReceived(payment).orElse(null),
+                paymentMethodOf(payment),
+                amount.isNumber() ? amount.decimalValue() : null,
+                payment.path("external_reference").asText(null)));
+        } catch (Exception exception) {
+            log.warn("Mercado Pago: falha ao consultar pagamento {}.", paymentId);
+            return Optional.empty();
+        }
     }
 
     private Optional<JsonNode> approvedPaymentForReference(String externalReference) {
@@ -368,12 +393,16 @@ public class MercadoPagoGateway implements RunPaymentGateway {
                     continue;
                 }
                 JsonNode amount = p.path("transaction_amount");
+                JsonNode payer = p.path("payer");
+                String payerName = (payer.path("first_name").asText("") + " "
+                    + payer.path("last_name").asText("")).trim();
                 out.add(new com.mercadosolidario.dto.run.RunDtos.MpPaymentSummary(
                     p.path("id").asText(null),
                     p.path("external_reference").asText(null),
                     amount.isNumber() ? amount.decimalValue() : null,
                     paymentMethodOf(p),
                     p.path("payer").path("email").asText(null),
+                    payerName.isEmpty() ? null : payerName,
                     p.path("status").asText(null),
                     p.path("date_created").asText(null)));
             }

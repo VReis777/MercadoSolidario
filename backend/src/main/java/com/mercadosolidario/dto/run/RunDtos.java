@@ -148,6 +148,7 @@ public class RunDtos {
         BigDecimal amount,
         String paymentMethod,
         String payerEmail,
+        String payerName,
         String status,
         String dateCreated
     ) {}

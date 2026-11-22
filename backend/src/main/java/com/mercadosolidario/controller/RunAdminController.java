@@ -83,6 +83,14 @@ public class RunAdminController {
         return runService.syncPayment(id);
     }
 
+    /** Vínculo manual de um pagamento aprovado do MP (pelo ID do pagamento). */
+    @PostMapping("/{id}/link-payment")
+    @PreAuthorize("hasRole('ADMIN')")
+    public AdminRunRegistrationResponse linkPayment(@PathVariable Long id,
+                                                    @RequestBody java.util.Map<String, String> body) {
+        return runService.linkPayment(id, body.get("paymentId"));
+    }
+
     @PostMapping("/{id}/claim-payment")
     @PreAuthorize("hasRole('ADMIN')")
     public AdminRunRegistrationResponse claimPayment(@PathVariable Long id,

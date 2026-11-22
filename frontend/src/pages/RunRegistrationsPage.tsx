@@ -67,7 +67,8 @@ function RunRegistrationsPage() {
   const [mpOpen, setMpOpen] = useState(false)
   const [mpPayments, setMpPayments] = useState<{
     paymentId: string | null; externalReference: string | null; amount: number | null
-    paymentMethod: string | null; payerEmail: string | null; status: string | null; dateCreated: string | null
+    paymentMethod: string | null; payerEmail: string | null; payerName: string | null
+    status: string | null; dateCreated: string | null
   }[]>([])
   const [mpLoading, setMpLoading] = useState(false)
   const [bulkBusy, setBulkBusy] = useState(false)
@@ -358,6 +359,29 @@ function RunRegistrationsPage() {
     }
   }
 
+  const linkMpPayment = async (id: number) => {
+    const raw = window.prompt(
+      'Cole o ID do pagamento aprovado no Mercado Pago (está na lista "Pagamentos no MP", no fim de cada linha). ' +
+      'Use quando o pagamento antigo não foi encontrado automaticamente.')
+    if (!raw) return
+    const paymentId = raw.replace(/\D/g, '')
+    if (!paymentId) {
+      setError('Informe o ID numérico do pagamento.')
+      return
+    }
+    setActing(id)
+    setError('')
+    try {
+      const reg = await runService.linkPayment(id, paymentId)
+      setMessage(`Pagamento ${paymentId} vinculado — ${reg.fullName} confirmada como ${reg.paymentMethod === 'PIX' ? 'PIX' : 'cartão'}.`)
+      await load()
+    } catch (linkMpError) {
+      setError(getApiErrorMessage(linkMpError, 'Não foi possível vincular o pagamento.'))
+    } finally {
+      setActing(null)
+    }
+  }
+
   const openEdit = (r: AdminRunRegistration) => {
     setEditTarget(r)
     setEditForm({
@@ -602,6 +626,10 @@ function RunRegistrationsPage() {
                                   disabled={acting === r.id} onClick={() => void claimPayment(r.id)}>
                                   Vincular pagto. MP
                                 </Button>
+                                <Button size="small" variant="outlined" color="success"
+                                  disabled={acting === r.id} onClick={() => void linkMpPayment(r.id)}>
+                                  Colar ID do pagto.
+                                </Button>
                               </>
                             )}
                             <Button size="small" variant="text" color="error"
@@ -740,7 +768,7 @@ function RunRegistrationsPage() {
                   {' · '}{p.dateCreated ? new Date(p.dateCreated).toLocaleString('pt-BR') : '—'}
                   {' · '}{p.amount != null ? fmtBRL(p.amount) : '—'}
                   {' · '}{p.paymentMethod ?? '—'}
-                  {' · '}{p.payerEmail ?? '—'}
+                  {' · '}{p.payerName ?? p.payerEmail ?? '—'}
                   {' · id '}{p.paymentId ?? '—'}
                 </Typography>
               ))}

@@ -298,7 +298,8 @@ public class RunService {
                     audit("RUN_PAYMENT_SYNCED_BY_PAYER", registration.getId(),
                         "paymentRef=" + match.paymentId() + ",externalRef=" + match.externalReference());
                     applyGatewayPayment(registration, new RunPaymentGateway.ApprovedPaymentInfo(
-                        match.paymentId(), match.netAmount(), match.paymentMethod(), match.amount()));
+                        match.paymentId(), match.netAmount(), match.paymentMethod(),
+                        match.amount(), match.externalReference()));
                 });
             }
         }
@@ -513,6 +514,50 @@ public class RunService {
                 + ",method=" + target.getPaymentMethod());
         applyLegacyExtraDonation(target, info.amount());
         markPaid(target, info.netAmount() != null ? info.netAmount() : estimateNet(target));
+        return toAdmin(registrationRepository.save(target));
+    }
+
+    /**
+     * Vínculo manual: o admin informa o ID do pagamento aprovado no MP
+     * (conferido na lista "Pagamentos no MP") e ele é baixado na inscrição.
+     * Usado na reconstrução do banco antigo, quando o external_reference
+     * é de um ID do Neon e o pagador PIX não expõe e-mail/nome.
+     */
+    @Transactional
+    public AdminRunRegistrationResponse linkPayment(Long id, String paymentId) {
+        RunRegistration target = registrationRepository.findByIdForUpdate(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Inscrição não encontrada"));
+        if (!"PENDENTE".equals(target.getStatus())) {
+            throw new ConflictException("Só é possível vincular pagamento a inscrição pendente.");
+        }
+        if (paymentGateway instanceof MercadoPagoGateway mp && mp.isEnabled()) {
+            RunPaymentGateway.ApprovedPaymentInfo info = mp.approvedPaymentInfoById(paymentId)
+                .orElseThrow(() -> new ConflictException(
+                    "Pagamento não encontrado ou não aprovado no Mercado Pago."));
+            String external = info.externalReference();
+            // Referência vazia/não numérica também é aceita no vínculo manual
+            // (pagamentos antigos sem external_reference) — o admin confere
+            // data/valor na lista do MP antes de vincular.
+            Long refId = external != null && external.matches("\\d+")
+                ? Long.valueOf(external) : null;
+            if (refId != null && !refId.equals(target.getId())) {
+                // Em pagamentos antigos a referência é um ID do Neon, sem
+                // correspondência confiável — só bloqueia se o dinheiro já
+                // foi baixado em OUTRA inscrição paga (evita contagem dupla).
+                registrationRepository.findById(refId)
+                    .filter(r -> "PAGA".equals(r.getStatus()))
+                    .ifPresent(r -> {
+                        throw new ConflictException(
+                            "Esse pagamento já está baixado na inscrição #" + refId + " (" + r.getFullName() + ").");
+                    });
+            }
+            target.setPaymentRef(info.paymentId());
+            audit("RUN_PAYMENT_LINKED_MANUAL", target.getId(),
+                "paymentRef=" + info.paymentId() + ",externalRef=" + external);
+            applyGatewayPayment(target, info);
+        } else {
+            throw new ConflictException("Gateway de pagamento indisponível no momento.");
+        }
         return toAdmin(registrationRepository.save(target));
     }
 

@@ -145,6 +145,10 @@ const runService = {
     const { data } = await api.post<RunStatus>(`/rum/registrations/${id}/revert-payment`)
     return data
   },
+  linkPayment: async (id: number, paymentId: string): Promise<AdminRunRegistration> => {
+    const { data } = await api.post<AdminRunRegistration>(`/rum/registrations/${id}/link-payment`, { paymentId })
+    return data
+  },
   claimPayment: async (id: number, fromId: number): Promise<AdminRunRegistration> => {
     const { data } = await api.post<AdminRunRegistration>(`/rum/registrations/${id}/claim-payment`, { fromId })
     return data
@@ -196,6 +200,7 @@ const runService = {
     amount: number | null
     paymentMethod: string | null
     payerEmail: string | null
+    payerName: string | null
     status: string | null
     dateCreated: string | null
   }[]> => {
