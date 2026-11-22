@@ -55,7 +55,7 @@ class PublicServiceRequestControllerTest {
         assertThat(serviceRequestRepository.count()).isEqualTo(1);
         PublicServiceRequest saved = serviceRequestRepository.findAll().get(0);
         assertThat(saved.getProtocolHash()).hasSize(64).isNotEqualTo(protocol);
-        assertThat(saved.getLocation()).isEqualTo("São Paulo, Centro");
+        assertThat(saved.getLocation()).isEqualTo("Petrópolis, Centro");
         assertThat(saved.getHouseholdSize()).isEqualTo(2);
         assertThat(saved.getConsentAccepted()).isTrue();
         assertThat(familyRepository.count()).isZero();
@@ -248,7 +248,7 @@ class PublicServiceRequestControllerTest {
 
     private CreatePublicServiceRequest validRequest() {
         CreatePublicServiceRequest request = new CreatePublicServiceRequest();
-        request.setLocation("São Paulo, Centro");
+        request.setLocation("Petrópolis, Centro");
         request.setHouseholdSize(2);
         request.setAssistanceType("Alimentação");
         request.setMessage("Solicito auxílio.");

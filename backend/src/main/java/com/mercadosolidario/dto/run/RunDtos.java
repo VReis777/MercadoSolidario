@@ -104,6 +104,51 @@ public class RunDtos {
         String fullName,
         String email,
         String phone,
-        String shirtSize
+        String shirtSize,
+        String modality
+    ) {}
+
+    /** Linha de importação em massa de inscrições (recuperação de banco). */
+    public record RunImportRow(
+        Long originalId,
+        String fullName,
+        String email,
+        String phone,
+        LocalDate birthDate,
+        String modality,
+        String shirtSize,
+        String paymentMethod,
+        String status,
+        LocalDateTime createdAt
+    ) {}
+
+    /** Doação avulsa importada junto com as inscrições. */
+    public record RunImportDonation(
+        BigDecimal amount,
+        String donorName,
+        String donorContact,
+        String observation
+    ) {}
+
+    public record RunImportRequest(
+        List<RunImportRow> registrations,
+        List<RunImportDonation> donations
+    ) {}
+
+    public record RunImportResult(
+        int created,
+        int skipped,
+        List<String> errors
+    ) {}
+
+    /** Resumo de pagamento aprovado no Mercado Pago (conferência admin). */
+    public record MpPaymentSummary(
+        String paymentId,
+        String externalReference,
+        BigDecimal amount,
+        String paymentMethod,
+        String payerEmail,
+        String status,
+        String dateCreated
     ) {}
 }

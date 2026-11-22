@@ -43,6 +43,7 @@ class RunServiceTest {
     @Mock private RunPaymentGateway paymentGateway;
     @Mock private PixPayloadGenerator pixPayloadGenerator;
     @Mock private DonationService donationService;
+    @Mock private org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
 
     private RunService service;
 
@@ -50,7 +51,7 @@ class RunServiceTest {
     void setUp() {
         service = new RunService(registrationRepository, donationRepository, settingRepository,
             auditLogRepository, userRepository, emailSender, paymentGateway,
-            pixPayloadGenerator, donationService);
+            pixPayloadGenerator, donationService, jdbcTemplate);
     }
 
     private RunRegistration pending(Long id, String accessKey, String paymentRef) {
@@ -77,7 +78,6 @@ class RunServiceTest {
         when(paymentGateway.approvedExternalReference("555")).thenReturn(Optional.of("7"));
         when(userRepository.findActiveByRoleNames(any())).thenReturn(List.of());
         when(pixPayloadGenerator.generateQrCodePng(anyString())).thenReturn(new byte[]{1});
-        when(pixPayloadGenerator.generateQrCodeDataUri(anyString())).thenReturn("data:image/png;base64,x");
         when(donationRepository.save(any(Donation.class))).thenAnswer(inv -> inv.getArgument(0));
 
         RunStatusResponse status = service.status(7L, "key-7");

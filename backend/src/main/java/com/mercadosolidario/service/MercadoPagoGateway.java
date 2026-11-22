@@ -337,4 +337,83 @@ public class MercadoPagoGateway implements RunPaymentGateway {
         }
         return mapper.readTree(response.body());
     }
+
+    /**
+     * Últimos pagamentos aprovados no MP — conferência admin para
+     * reconciliar external_reference ↔ pagador.
+     */
+    public java.util.List<com.mercadosolidario.dto.run.RunDtos.MpPaymentSummary> recentApprovedPayments() {
+        try {
+            String url = API + "/v1/payments/search?sort=date_created&criteria=desc&limit=50";
+            HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(url))
+                .header("Authorization", "Bearer " + accessToken)
+                .timeout(Duration.ofSeconds(20))
+                .GET().build();
+            HttpResponse<String> response = http.send(request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+            if (response.statusCode() != 200) {
+                return java.util.List.of();
+            }
+            java.util.List<com.mercadosolidario.dto.run.RunDtos.MpPaymentSummary> out = new java.util.ArrayList<>();
+            for (JsonNode p : mapper.readTree(response.body()).path("results")) {
+                if (!"approved".equals(p.path("status").asText())) {
+                    continue;
+                }
+                JsonNode amount = p.path("transaction_amount");
+                out.add(new com.mercadosolidario.dto.run.RunDtos.MpPaymentSummary(
+                    p.path("id").asText(null),
+                    p.path("external_reference").asText(null),
+                    amount.isNumber() ? amount.decimalValue() : null,
+                    paymentMethodOf(p),
+                    p.path("payer").path("email").asText(null),
+                    p.path("status").asText(null),
+                    p.path("date_created").asText(null)));
+            }
+            return out;
+        } catch (Exception exception) {
+            log.warn("Mercado Pago: falha ao listar pagamentos recentes.");
+            return java.util.List.of();
+        }
+    }
+
+    /** Pagamento aprovado encontrado pelo e-mail do pagador (external_reference numérica = inscrição). */
+    public record PayerPaymentMatch(String paymentId, String externalReference,
+                                    BigDecimal netAmount, String paymentMethod) {}
+
+    public Optional<PayerPaymentMatch> approvedPaymentForPayerEmail(String email) {
+        if (email == null || email.isBlank()) {
+            return Optional.empty();
+        }
+        try {
+            String url = API + "/v1/payments/search?sort=date_created&criteria=desc&limit=100";
+            HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(url))
+                .header("Authorization", "Bearer " + accessToken)
+                .timeout(Duration.ofSeconds(20))
+                .GET().build();
+            HttpResponse<String> response = http.send(request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+            if (response.statusCode() != 200) {
+                return Optional.empty();
+            }
+            for (JsonNode p : mapper.readTree(response.body()).path("results")) {
+                if (!"approved".equals(p.path("status").asText())) {
+                    continue;
+                }
+                String payerEmail = p.path("payer").path("email").asText("");
+                String external = p.path("external_reference").asText("");
+                if (!email.equalsIgnoreCase(payerEmail) || !external.matches("\\d+")) {
+                    continue;
+                }
+                return Optional.of(new PayerPaymentMatch(
+                    p.path("id").asText(null),
+                    external,
+                    netReceived(p).orElse(null),
+                    paymentMethodOf(p)));
+            }
+            return Optional.empty();
+        } catch (Exception exception) {
+            log.warn("Mercado Pago: falha ao buscar pagamento por e-mail do pagador.");
+            return Optional.empty();
+        }
+    }
 }

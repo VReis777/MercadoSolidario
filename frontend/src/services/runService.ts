@@ -154,12 +154,48 @@ const runService = {
     email?: string
     phone?: string
     shirtSize?: string
+    modality?: string
   }): Promise<AdminRunRegistration> => {
     const { data: result } = await api.put<AdminRunRegistration>(`/rum/registrations/${id}`, data)
     return result
   },
   recadastrar: async (id: number): Promise<AdminRunRegistration> => {
     const { data } = await api.post<AdminRunRegistration>(`/rum/registrations/${id}/recadastrar`)
+    return data
+  },
+  importRegistrations: async (payload: {
+    registrations: {
+      originalId?: number | null
+      fullName: string
+      email?: string | null
+      phone?: string | null
+      birthDate?: string | null
+      modality: string
+      shirtSize?: string | null
+      paymentMethod?: string | null
+      status?: string | null
+      createdAt?: string | null
+    }[]
+    donations: {
+      amount: number
+      donorName?: string | null
+      donorContact?: string | null
+      observation?: string | null
+    }[]
+  }): Promise<{ created: number; skipped: number; errors: string[] }> => {
+    const { data } = await api.post('/rum/registrations/import', payload)
+    return data
+  },
+  mpPayments: async (): Promise<{
+    paymentId: string | null
+    externalReference: string | null
+    amount: number | null
+    paymentMethod: string | null
+    payerEmail: string | null
+    status: string | null
+    dateCreated: string | null
+  }[]> => {
+    const { data } = await api.get('/rum/registrations/mp-payments')
     return data
   },
 }

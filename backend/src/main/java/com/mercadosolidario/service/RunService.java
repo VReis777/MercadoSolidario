@@ -17,6 +17,7 @@ import com.mercadosolidario.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -25,6 +26,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
@@ -52,6 +54,7 @@ public class RunService {
     private final RunPaymentGateway paymentGateway;
     private final PixPayloadGenerator pixPayloadGenerator;
     private final DonationService donationService;
+    private final JdbcTemplate jdbcTemplate;
 
     @Value("${app.mail.from:}")
     private String fromAddress;
@@ -260,17 +263,164 @@ public class RunService {
     /**
      * Sincroniza com o Mercado Pago: se já existe pagamento aprovado com a
      * referência da inscrição, confirma na hora (cobre webhook atrasado/ausente).
+     * Fallback: pagamentos antigos podem ter external_reference de um ID
+     * anterior à migração de banco — nesse caso casa pelo e-mail do pagador.
      */
     @Transactional
     public AdminRunRegistrationResponse syncPayment(Long id) {
         RunRegistration registration = registrationRepository.findByIdForUpdate(id)
             .orElseThrow(() -> new ResourceNotFoundException("Inscrição não encontrada"));
-        if ("PENDENTE".equals(registration.getStatus()) && paymentGateway.isEnabled()
-                && paymentGateway.hasApprovedPaymentFor(registration.getId().toString())) {
-            confirmViaGateway(registration,
-                () -> paymentGateway.approvedNetReceivedForReference(registration.getId().toString()));
+        if ("PENDENTE".equals(registration.getStatus()) && paymentGateway.isEnabled()) {
+            if (paymentGateway.hasApprovedPaymentFor(registration.getId().toString())) {
+                confirmViaGateway(registration,
+                    () -> paymentGateway.approvedNetReceivedForReference(registration.getId().toString()));
+            } else if (paymentGateway instanceof MercadoPagoGateway mp) {
+                mp.approvedPaymentForPayerEmail(registration.getEmail()).ifPresent(match -> {
+                    // Segurança: se a referência do pagamento aponta para uma
+                    // inscrição ativa existente, o dinheiro é dela — não confirmar aqui.
+                    Long refId = parseLong(match.externalReference());
+                    boolean belongsToOther = refId != null
+                        && registrationRepository.findById(refId)
+                            .map(r -> !"CANCELADA".equals(r.getStatus()))
+                            .orElse(false);
+                    if (belongsToOther) {
+                        audit("RUN_SYNC_PAYMENT_SKIPPED", registration.getId(),
+                            "paymentRef=" + match.paymentId() + " pertence à inscrição #" + refId);
+                        return;
+                    }
+                    registration.setPaymentRef(match.paymentId());
+                    if (match.paymentMethod() != null && !match.paymentMethod().isBlank()) {
+                        registration.setPaymentMethod(match.paymentMethod());
+                    }
+                    audit("RUN_PAYMENT_SYNCED_BY_PAYER", registration.getId(),
+                        "paymentRef=" + match.paymentId() + ",externalRef=" + match.externalReference());
+                    markPaid(registration,
+                        match.netAmount() != null ? match.netAmount() : estimateNet(registration));
+                });
+            }
         }
         return toAdmin(registrationRepository.save(registration));
+    }
+
+    private static Long parseLong(String value) {
+        try {
+            return value == null ? null : Long.valueOf(value.trim());
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    /** Últimos pagamentos aprovados no Mercado Pago (conferência admin). */
+    @Transactional(readOnly = true)
+    public List<MpPaymentSummary> listMpPayments() {
+        if (paymentGateway instanceof MercadoPagoGateway mp) {
+            return mp.recentApprovedPayments();
+        }
+        return List.of();
+    }
+
+    /**
+     * Importação em massa de inscrições e doações avulsas — usada para
+     * reconstruir o banco após migração. Aceita ID original explícito
+     * (preserva external_reference do Mercado Pago) quando livre.
+     * Registros PAGA geram doação e disparam os e-mails de QR.
+     */
+    @Transactional
+    public RunImportResult importRegistrations(RunImportRequest request) {
+        List<String> errors = new ArrayList<>();
+        int created = 0;
+        int skipped = 0;
+        if (request.registrations() != null) {
+            for (RunImportRow row : request.registrations()) {
+                try {
+                    if (importOne(row)) {
+                        created++;
+                    } else {
+                        skipped++;
+                    }
+                } catch (Exception e) {
+                    errors.add((row.fullName() != null ? row.fullName() : "?") + ": " + e.getMessage());
+                }
+            }
+        }
+        if (request.donations() != null) {
+            for (RunImportDonation d : request.donations()) {
+                try {
+                    if (d.amount() == null || d.amount().compareTo(BigDecimal.ZERO) <= 0) {
+                        throw new IllegalArgumentException("valor inválido");
+                    }
+                    Donation donation = new Donation();
+                    donation.setType(DonationType.FINANCEIRA);
+                    donation.setAmount(d.amount());
+                    donation.setDonorName(trimToNull(d.donorName()));
+                    donation.setDonorContact(trimToNull(d.donorContact()));
+                    donation.setObservation(trimToNull(d.observation()));
+                    donation.setStatus(DonationStatus.PAGA);
+                    donation.setConfirmationDate(LocalDateTime.now());
+                    donationRepository.save(donation);
+                    created++;
+                } catch (Exception e) {
+                    errors.add("Doação " + (d.donorName() != null ? d.donorName() : "?") + ": " + e.getMessage());
+                }
+            }
+        }
+        // Garante que a sequence não colida com IDs explícitos importados.
+        jdbcTemplate.execute(
+            "SELECT setval(pg_get_serial_sequence('run_registrations','id'), "
+                + "COALESCE((SELECT MAX(id) FROM run_registrations), 1))");
+        audit("RUN_IMPORT", null,
+            "created=" + created + ",skipped=" + skipped + ",errors=" + errors.size());
+        return new RunImportResult(created, skipped, errors);
+    }
+
+    private boolean importOne(RunImportRow row) {
+        String name = trimToNull(row.fullName());
+        if (name == null) {
+            throw new IllegalArgumentException("nome obrigatório");
+        }
+        String modality = row.modality() != null ? row.modality().trim().toUpperCase() : "";
+        if (!MODALITIES.contains(modality)) {
+            throw new IllegalArgumentException("modalidade inválida (use 3KM ou 7KM)");
+        }
+        String status = row.status() != null ? row.status().trim().toUpperCase() : "PENDENTE";
+        if (!status.equals("PENDENTE") && !status.equals("PAGA")) {
+            throw new IllegalArgumentException("status inválido (use PENDENTE ou PAGA)");
+        }
+        String method = row.paymentMethod() != null && !row.paymentMethod().isBlank()
+            ? row.paymentMethod().trim().toUpperCase() : "PIX";
+        if (!method.equals("PIX") && !method.equals("CARTAO")) {
+            throw new IllegalArgumentException("método inválido (PIX ou CARTAO)");
+        }
+        String emailNorm = trimToNull(row.email());
+        String phoneDigits = digits(trimToNull(row.phone()));
+        boolean duplicate = registrationRepository.findByStatusNot("CANCELADA").stream()
+            .anyMatch(r -> (emailNorm != null && emailNorm.equalsIgnoreCase(trimToNull(r.getEmail())))
+                || (phoneDigits != null && phoneDigits.equals(digits(trimToNull(r.getPhone())))));
+        if (duplicate) {
+            return false;
+        }
+        Long explicitId = row.originalId();
+        if (explicitId != null && registrationRepository.existsById(explicitId)) {
+            throw new IllegalArgumentException("ID " + explicitId + " já existe");
+        }
+        Long newId = explicitId != null ? explicitId
+            : jdbcTemplate.queryForObject("SELECT nextval('run_registrations_id_seq')", Long.class);
+        boolean paid = status.equals("PAGA");
+        String checkin = paid ? UUID.randomUUID().toString().replace("-", "") : null;
+        jdbcTemplate.update(
+            "INSERT INTO run_registrations (id, full_name, email, phone, birth_date, modality,"
+                + " shirt_size, amount, payment_method, status, paid_at, net_amount,"
+                + " checkin_code, access_key, legacy, created_at)"
+                + " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            newId, name, emailNorm, trimToNull(row.phone()), row.birthDate(), modality,
+            trimToNull(row.shirtSize()), RunPaymentGateway.reais(priceCents()), method, status,
+            paid ? LocalDateTime.now() : null, null, checkin,
+            UUID.randomUUID().toString().replace("-", ""), paid, row.createdAt() != null ? row.createdAt() : LocalDateTime.now());
+        if (paid) {
+            RunRegistration saved = registrationRepository.findById(newId).orElseThrow();
+            markPaid(saved, estimateNet(saved));
+        }
+        return true;
     }
 
     /**
@@ -349,6 +499,13 @@ public class RunService {
         registration.setEmail(trimToNull(request.email()));
         registration.setPhone(trimToNull(request.phone()));
         registration.setShirtSize(trimToNull(request.shirtSize()));
+        if (request.modality() != null && !request.modality().isBlank()) {
+            String modality = request.modality().trim().toUpperCase();
+            if (!MODALITIES.contains(modality)) {
+                throw new IllegalArgumentException("Modalidade inválida — escolha 3KM ou 7KM.");
+            }
+            registration.setModality(modality);
+        }
         audit("RUN_REGISTRATION_UPDATED", registration.getId(),
             "name=" + registration.getFullName() + ",shirt=" + registration.getShirtSize());
         return toAdmin(registrationRepository.save(registration));

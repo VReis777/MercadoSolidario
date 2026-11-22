@@ -51,8 +51,15 @@ public class RunRegistration {
     // Taxa de R$7,00 cobrada só no cartão para cobrir a taxa do gateway.
     public static final BigDecimal CARD_SURCHARGE = new BigDecimal("7.00");
 
+    // Inscrição importada/legada: pagou antes da taxa de cartão — amountDue não soma os R$7.
+    @Column(name = "legacy", nullable = false)
+    private Boolean legacy = false;
+
     /** Valor final cobrado do inscrito: inscrição + extra + taxa de cartão (se aplicável). */
     public BigDecimal amountDue() {
+        if (Boolean.TRUE.equals(legacy)) {
+            return totalCharged();
+        }
         return totalCharged().add("CARTAO".equals(paymentMethod) ? CARD_SURCHARGE : BigDecimal.ZERO);
     }
 

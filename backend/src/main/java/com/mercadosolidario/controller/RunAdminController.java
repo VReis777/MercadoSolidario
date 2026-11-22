@@ -1,6 +1,9 @@
 package com.mercadosolidario.controller;
 
 import com.mercadosolidario.dto.run.RunDtos.AdminRunRegistrationResponse;
+import com.mercadosolidario.dto.run.RunDtos.MpPaymentSummary;
+import com.mercadosolidario.dto.run.RunDtos.RunImportRequest;
+import com.mercadosolidario.dto.run.RunDtos.RunImportResult;
 import com.mercadosolidario.dto.run.RunDtos.UpdateRunRegistrationRequest;
 import com.mercadosolidario.dto.run.RunDtos.RunStatusResponse;
 import com.mercadosolidario.dto.run.RunDtos.RunVerifyResponse;
@@ -97,6 +100,20 @@ public class RunAdminController {
     @PreAuthorize("hasRole('ADMIN')")
     public void resendQrEmail(@PathVariable Long id) {
         runService.resendQrEmail(id);
+    }
+
+    /** Importação em massa de inscrições/doações (recuperação de banco). */
+    @PostMapping("/import")
+    @PreAuthorize("hasRole('ADMIN')")
+    public RunImportResult importRegistrations(@RequestBody RunImportRequest request) {
+        return runService.importRegistrations(request);
+    }
+
+    /** Últimos pagamentos aprovados no Mercado Pago (conferência/reconciliação). */
+    @GetMapping("/mp-payments")
+    @PreAuthorize("hasRole('ADMIN')")
+    public List<MpPaymentSummary> mpPayments() {
+        return runService.listMpPayments();
     }
 
     // Retirada do kit pelo QR — equipe no local (ADMIN, RH ou voluntário).

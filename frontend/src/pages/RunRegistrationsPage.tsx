@@ -57,8 +57,19 @@ function RunRegistrationsPage() {
   const [filterText, setFilterText] = useState('')
   const [acting, setActing] = useState<number | null>(null)
   const [editTarget, setEditTarget] = useState<AdminRunRegistration | null>(null)
-  const [editForm, setEditForm] = useState({ fullName: '', email: '', phone: '', shirtSize: '' })
+  const [editForm, setEditForm] = useState({ fullName: '', email: '', phone: '', shirtSize: '', modality: '7KM' })
   const [savingEdit, setSavingEdit] = useState(false)
+  const [importOpen, setImportOpen] = useState(false)
+  const [importText, setImportText] = useState('')
+  const [donationsText, setDonationsText] = useState('')
+  const [importing, setImporting] = useState(false)
+  const [importResult, setImportResult] = useState<{ created: number; skipped: number; errors: string[] } | null>(null)
+  const [mpOpen, setMpOpen] = useState(false)
+  const [mpPayments, setMpPayments] = useState<{
+    paymentId: string | null; externalReference: string | null; amount: number | null
+    paymentMethod: string | null; payerEmail: string | null; status: string | null; dateCreated: string | null
+  }[]>([])
+  const [mpLoading, setMpLoading] = useState(false)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -156,6 +167,87 @@ function RunRegistrationsPage() {
     }
   }
 
+  const openMpPayments = async () => {
+    setMpOpen(true)
+    setMpLoading(true)
+    try {
+      setMpPayments(await runService.mpPayments())
+    } catch {
+      setMpPayments([])
+    } finally {
+      setMpLoading(false)
+    }
+  }
+
+  const parseImport = () => {
+    const registrations = importText.split('\n')
+      .map((l) => l.trim())
+      .filter((l) => l && !l.startsWith('#'))
+      .map((line) => {
+        const p = line.split(';')
+        const num = (v?: string) => (v && v.trim() ? Number(v.trim()) : null)
+        const str = (v?: string) => (v && v.trim() ? v.trim() : null)
+        const dt = (v?: string) => {
+          const s = str(v)
+          if (!s) return null
+          const iso = s.includes('T') ? s : s.replace(' ', 'T')
+          return /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?/.test(iso)
+            ? (iso.length === 16 ? `${iso}:00` : iso)
+            : null
+        }
+        return {
+          originalId: num(p[0]),
+          fullName: (p[1] ?? '').trim(),
+          email: str(p[2]),
+          phone: str(p[3]),
+          birthDate: str(p[4]),
+          modality: (p[5] ?? '').trim().toUpperCase(),
+          shirtSize: str(p[6]),
+          status: (p[7] ?? '').trim().toUpperCase() || 'PENDENTE',
+          paymentMethod: str(p[8]),
+          createdAt: dt(p[9]),
+        }
+      })
+      .filter((r) => r.fullName)
+    const donations = donationsText.split('\n')
+      .map((l) => l.trim())
+      .filter((l) => l && !l.startsWith('#'))
+      .map((line) => {
+        const p = line.split(';')
+        return {
+          amount: Number((p[0] ?? '').trim().replace(',', '.')),
+          donorName: p[1]?.trim() || null,
+          donorContact: p[2]?.trim() || null,
+          observation: p.slice(3).join(';').trim() || null,
+        }
+      })
+      .filter((d) => Number.isFinite(d.amount) && d.amount > 0)
+    return { registrations, donations }
+  }
+
+  const submitImport = async () => {
+    const { registrations, donations } = parseImport()
+    if (registrations.length === 0 && donations.length === 0) {
+      setError('Nada para importar — preencha as linhas no formato indicado.')
+      return
+    }
+    setImporting(true)
+    setError('')
+    setImportResult(null)
+    try {
+      const result = await runService.importRegistrations({ registrations, donations })
+      setImportResult(result)
+      if (result.errors.length === 0) {
+        setMessage(`Importação concluída: ${result.created} registro(s) criado(s), ${result.skipped} ignorado(s).`)
+      }
+      await load()
+    } catch (importError) {
+      setError(getApiErrorMessage(importError, 'Falha na importação.'))
+    } finally {
+      setImporting(false)
+    }
+  }
+
   const sendRetryEmail = async (id: number) => {
     setActing(id)
     setError('')
@@ -229,6 +321,7 @@ function RunRegistrationsPage() {
       email: r.email ?? '',
       phone: r.phone ?? '',
       shirtSize: r.shirtSize ?? '',
+      modality: r.modality,
     })
   }
 
@@ -242,6 +335,7 @@ function RunRegistrationsPage() {
         email: editForm.email || undefined,
         phone: editForm.phone || undefined,
         shirtSize: editForm.shirtSize || undefined,
+        modality: editForm.modality || undefined,
       })
       setMessage('Inscrição atualizada.')
       setEditTarget(null)
@@ -375,6 +469,16 @@ function RunRegistrationsPage() {
                 <MenuItem value="CANCELADA">Cancelada</MenuItem>
               </TextField>
               <Button variant="outlined" onClick={() => void copyPendingContacts()}>Copiar contatos pendentes</Button>
+              {isAdmin && (
+                <Button variant="outlined" color="secondary" onClick={() => setImportOpen(true)}>
+                  Importar inscrições
+                </Button>
+              )}
+              {isAdmin && (
+                <Button variant="outlined" color="info" onClick={() => void openMpPayments()}>
+                  Pagamentos no MP
+                </Button>
+              )}
               <Button onClick={() => void load()}>Atualizar</Button>
             </Stack>
 
@@ -503,6 +607,11 @@ function RunRegistrationsPage() {
               onChange={(e) => setEditForm({ ...editForm, email: e.target.value })} />
             <TextField fullWidth label="Telefone/WhatsApp" value={editForm.phone}
               onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })} />
+            <TextField fullWidth select label="Modalidade" value={editForm.modality}
+              onChange={(e) => setEditForm({ ...editForm, modality: e.target.value })}>
+              <MenuItem value="3KM">3 km — caminhada</MenuItem>
+              <MenuItem value="7KM">7 km — corrida</MenuItem>
+            </TextField>
             <TextField fullWidth select label="Tamanho da camisa" value={editForm.shirtSize}
               onChange={(e) => setEditForm({ ...editForm, shirtSize: e.target.value })}>
               <MenuItem value="">Não informado</MenuItem>
@@ -515,6 +624,73 @@ function RunRegistrationsPage() {
           <Button onClick={() => void saveEdit()} variant="contained" disabled={savingEdit || !editForm.fullName.trim()}>
             {savingEdit ? 'Salvando…' : 'Salvar'}
           </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={importOpen} onClose={() => setImportOpen(false)} maxWidth="md" fullWidth>
+        <DialogTitle>Importar inscrições e doações</DialogTitle>
+        <DialogContent dividers>
+          <Stack spacing={2} sx={{ mt: 1 }}>
+            <Alert severity="info">
+              <strong>Inscrições</strong> — uma por linha, campos separados por <code>;</code>:<br />
+              <code>id;nome;email;telefone;nascimento;modalidade;camisa;status;metodo;criado_em</code><br />
+              Ex.: <code>32;Daniela de S Domingos;email@x.com;;1983-05-26;3KM;G;PAGA;PIX;</code><br />
+              id vazio = automático · status: PENDENTE ou PAGA · metodo: PIX ou CARTAO · campos podem ficar vazios.
+            </Alert>
+            <TextField multiline minRows={8} fullWidth label="Inscrições" value={importText}
+              onChange={(e) => setImportText(e.target.value)}
+              placeholder={'32;Daniela de S Domingos;ddpaulino83@gmail.com;;1983-05-26;3KM;G;PAGA;PIX;'} />
+            <Alert severity="info">
+              <strong>Doações avulsas</strong> — uma por linha: <code>valor;nome;contato;observação</code><br />
+              Ex.: <code>2500,00;Brechó;;;Doação do brechó</code>
+            </Alert>
+            <TextField multiline minRows={3} fullWidth label="Doações" value={donationsText}
+              onChange={(e) => setDonationsText(e.target.value)}
+              placeholder={'2500,00;Brechó;;;Doação do brechó\n5,00;Doação pessoal;;;'} />
+            {importResult && (
+              <Alert severity={importResult.errors.length ? 'warning' : 'success'}>
+                {importResult.created} criado(s), {importResult.skipped} ignorado(s).
+                {importResult.errors.length > 0 && (
+                  <Box component="ul" sx={{ m: 0, pl: 2 }}>
+                    {importResult.errors.map((e, i) => <li key={i}>{e}</li>)}
+                  </Box>
+                )}
+              </Alert>
+            )}
+          </Stack>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => setImportOpen(false)} disabled={importing}>Fechar</Button>
+          <Button onClick={() => void submitImport()} variant="contained" disabled={importing}>
+            {importing ? 'Importando…' : 'Importar'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={mpOpen} onClose={() => setMpOpen(false)} maxWidth="md" fullWidth>
+        <DialogTitle>Pagamentos aprovados no Mercado Pago</DialogTitle>
+        <DialogContent dividers>
+          {mpLoading ? (
+            <Stack alignItems="center" sx={{ py: 4 }}><CircularProgress /></Stack>
+          ) : mpPayments.length === 0 ? (
+            <Alert severity="info">Nenhum pagamento aprovado encontrado (ou gateway indisponível).</Alert>
+          ) : (
+            <Stack spacing={0.5} sx={{ mt: 1 }}>
+              {mpPayments.map((p, i) => (
+                <Typography key={i} variant="body2">
+                  <strong>ref. {p.externalReference ?? '—'}</strong>
+                  {' · '}{p.dateCreated ? new Date(p.dateCreated).toLocaleString('pt-BR') : '—'}
+                  {' · '}{p.amount != null ? fmtBRL(p.amount) : '—'}
+                  {' · '}{p.paymentMethod ?? '—'}
+                  {' · '}{p.payerEmail ?? '—'}
+                  {' · id '}{p.paymentId ?? '—'}
+                </Typography>
+              ))}
+            </Stack>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => setMpOpen(false)}>Fechar</Button>
         </DialogActions>
       </Dialog>
     </Box>

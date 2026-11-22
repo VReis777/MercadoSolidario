@@ -47,7 +47,7 @@ class ServiceRequestAdministrationControllerTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""
                     {"fullName":"Pessoa Protegida","contactValue":"Maria@Example.com","contactPreference":"EMAIL",
-                     "location":"Rua Reservada","householdSize":3,"assistanceType":"FOOD",
+                     "location":"Petrópolis, Rua Reservada","householdSize":3,"assistanceType":"FOOD",
                      "message":"Informação privada","consentAccepted":true}
                     """))
             .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString();
