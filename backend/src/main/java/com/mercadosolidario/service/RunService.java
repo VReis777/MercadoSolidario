@@ -24,6 +24,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -302,6 +305,15 @@ public class RunService {
         return toAdmin(registrationRepository.save(registration));
     }
 
+    private static String sha256Hex(String value) {
+        try {
+            return java.util.HexFormat.of().formatHex(
+                MessageDigest.getInstance("SHA-256").digest(value.getBytes(StandardCharsets.UTF_8)));
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
     private static Long parseLong(String value) {
         try {
             return value == null ? null : Long.valueOf(value.trim());
@@ -349,12 +361,23 @@ public class RunService {
                     if (d.amount() == null || d.amount().compareTo(BigDecimal.ZERO) <= 0) {
                         throw new IllegalArgumentException("valor inválido");
                     }
+                    String donor = trimToNull(d.donorName());
+                    String obs = trimToNull(d.observation());
+                    // Referência estável por conteúdo: reimportar não duplica a doação.
+                    String ref = "IMPORT-" + sha256Hex(
+                        d.amount().toPlainString() + "|" + (donor == null ? "" : donor.toLowerCase())
+                            + "|" + (obs == null ? "" : obs.toLowerCase()));
+                    if (donationRepository.findByExternalReference(ref).isPresent()) {
+                        skipped++;
+                        continue;
+                    }
                     Donation donation = new Donation();
                     donation.setType(DonationType.FINANCEIRA);
                     donation.setAmount(d.amount());
-                    donation.setDonorName(trimToNull(d.donorName()));
+                    donation.setDonorName(donor);
                     donation.setDonorContact(trimToNull(d.donorContact()));
-                    donation.setObservation(trimToNull(d.observation()));
+                    donation.setObservation(obs);
+                    donation.setExternalReference(ref);
                     donation.setStatus(DonationStatus.PAGA);
                     donation.setConfirmationDate(LocalDateTime.now());
                     donationRepository.save(donation);
