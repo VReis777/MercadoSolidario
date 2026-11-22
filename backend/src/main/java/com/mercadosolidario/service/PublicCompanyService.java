@@ -38,7 +38,7 @@ public class PublicCompanyService {
         "DOAR_ITENS", "Quero doar itens da lista de compras",
         "SER_PARCEIRO", "Quero ser parceiro do projeto");
 
-    private static final String TEAM_ALERT_EMAIL = "h.reis777@gmail.com";
+    private static final String TEAM_ALERT_EMAIL = "ddpaulino83@gmail.com";
 
     private final SponsorRepository sponsorRepository;
     private final ProductRepository productRepository;
