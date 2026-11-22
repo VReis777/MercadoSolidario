@@ -194,6 +194,14 @@ const runService = {
     const { data } = await api.post('/rum/registrations/import', payload)
     return data
   },
+  reconcilePayments: async (rows: { email: string; paymentRef: string }[]): Promise<{
+    created: number
+    skipped: number
+    errors: string[]
+  }> => {
+    const { data } = await api.post('/rum/registrations/reconcile', { rows })
+    return data
+  },
   mpPayments: async (): Promise<{
     paymentId: string | null
     externalReference: string | null

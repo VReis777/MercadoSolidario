@@ -24,5 +24,7 @@ public interface RunRegistrationRepository extends JpaRepository<RunRegistration
 
     List<RunRegistration> findAllByOrderByCreatedAtDesc();
 
+    List<RunRegistration> findAllByEmailIgnoreCaseOrderByIdAsc(String email);
+
     List<RunRegistration> findByStatusNot(String status);
 }

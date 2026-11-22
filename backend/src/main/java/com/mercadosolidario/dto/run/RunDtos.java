@@ -141,6 +141,16 @@ public class RunDtos {
         List<String> errors
     ) {}
 
+    /** Linha de reconciliação em massa: e-mail + ID do pagamento MP ou "MANUAL" (PIX direto). */
+    public record RunReconcileRow(
+        String email,
+        String paymentRef
+    ) {}
+
+    public record RunReconcileRequest(
+        List<RunReconcileRow> rows
+    ) {}
+
     /** Resumo de pagamento aprovado no Mercado Pago (conferência admin). */
     public record MpPaymentSummary(
         String paymentId,

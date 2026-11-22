@@ -64,6 +64,10 @@ function RunRegistrationsPage() {
   const [donationsText, setDonationsText] = useState('')
   const [importing, setImporting] = useState(false)
   const [importResult, setImportResult] = useState<{ created: number; skipped: number; errors: string[] } | null>(null)
+  const [reconcileOpen, setReconcileOpen] = useState(false)
+  const [reconcileText, setReconcileText] = useState('')
+  const [reconciling, setReconciling] = useState(false)
+  const [reconcileResult, setReconcileResult] = useState<{ created: number; skipped: number; errors: string[] } | null>(null)
   const [mpOpen, setMpOpen] = useState(false)
   const [mpPayments, setMpPayments] = useState<{
     paymentId: string | null; externalReference: string | null; amount: number | null
@@ -290,6 +294,34 @@ function RunRegistrationsPage() {
       setError(getApiErrorMessage(importError, 'Falha na importação.'))
     } finally {
       setImporting(false)
+    }
+  }
+
+  const submitReconcile = async () => {
+    const rows = reconcileText.split('\n')
+      .map((l) => l.trim())
+      .filter((l) => l && !l.startsWith('#'))
+      .map((line) => {
+        const p = line.split(';')
+        return { email: (p[0] ?? '').trim(), paymentRef: (p[1] ?? '').trim() }
+      })
+      .filter((r) => r.email)
+    if (rows.length === 0) {
+      setError('Nada para baixar — preencha as linhas no formato indicado.')
+      return
+    }
+    setReconciling(true)
+    setError('')
+    setReconcileResult(null)
+    try {
+      const result = await runService.reconcilePayments(rows)
+      setReconcileResult(result)
+      setMessage(`Baixa concluída: ${result.created} confirmada(s), ${result.skipped} já estavam pagas.`)
+      await load()
+    } catch (reconcileError) {
+      setError(getApiErrorMessage(reconcileError, 'Falha na baixa em massa.'))
+    } finally {
+      setReconciling(false)
     }
   }
 
@@ -554,6 +586,11 @@ function RunRegistrationsPage() {
                 </Button>
               )}
               {isAdmin && (
+                <Button variant="outlined" color="success" onClick={() => { setReconcileResult(null); setReconcileOpen(true) }}>
+                  Baixar pagamentos
+                </Button>
+              )}
+              {isAdmin && (
                 <Button variant="contained" color="success" disabled={bulkBusy}
                   onClick={() => void syncAllPending()}>
                   {bulkBusy ? 'Sincronizando…' : 'Sincronizar pendentes'}
@@ -749,6 +786,40 @@ function RunRegistrationsPage() {
           <Button onClick={() => setImportOpen(false)} disabled={importing}>Fechar</Button>
           <Button onClick={() => void submitImport()} variant="contained" disabled={importing}>
             {importing ? 'Importando…' : 'Importar'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={reconcileOpen} onClose={() => setReconcileOpen(false)} maxWidth="md" fullWidth>
+        <DialogTitle>Baixar pagamentos em massa</DialogTitle>
+        <DialogContent dividers>
+          <Stack spacing={2} sx={{ mt: 1 }}>
+            <Alert severity="info">
+              Uma linha por pessoa, campos separados por <code>;</code>:<br />
+              <code>email;id_do_pagamento_MP</code> — vincula e confirma com os dados reais do Mercado Pago<br />
+              <code>email;MANUAL</code> — confirma PIX direto (bruto = líquido, sem taxa)<br />
+              Ex.: <code>merianir40@gmail.com;190399604882</code> · <code>lolarpimentel@gmail.com;MANUAL</code><br />
+              O sistema valida cada pagamento no MP; linha com erro não impede as demais.
+            </Alert>
+            <TextField multiline minRows={10} fullWidth label="Linhas" value={reconcileText}
+              onChange={(e) => setReconcileText(e.target.value)}
+              placeholder={'merianir40@gmail.com;190399604882\nlolarpimentel@gmail.com;MANUAL'} />
+            {reconcileResult && (
+              <Alert severity={reconcileResult.errors.length ? 'warning' : 'success'}>
+                {reconcileResult.created} confirmada(s), {reconcileResult.skipped} já estavam pagas.
+                {reconcileResult.errors.length > 0 && (
+                  <Box component="ul" sx={{ m: 0, pl: 2 }}>
+                    {reconcileResult.errors.map((e, i) => <li key={i}>{e}</li>)}
+                  </Box>
+                )}
+              </Alert>
+            )}
+          </Stack>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => setReconcileOpen(false)} disabled={reconciling}>Fechar</Button>
+          <Button onClick={() => void submitReconcile()} variant="contained" color="success" disabled={reconciling}>
+            {reconciling ? 'Baixando…' : 'Baixar tudo'}
           </Button>
         </DialogActions>
       </Dialog>

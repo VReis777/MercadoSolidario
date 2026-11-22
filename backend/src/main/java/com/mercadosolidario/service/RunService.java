@@ -535,35 +535,103 @@ public class RunService {
         if (!"PENDENTE".equals(target.getStatus())) {
             throw new ConflictException("Só é possível vincular pagamento a inscrição pendente.");
         }
-        if (paymentGateway instanceof MercadoPagoGateway mp && mp.isEnabled()) {
-            RunPaymentGateway.ApprovedPaymentInfo info = mp.approvedPaymentInfoById(paymentId)
-                .orElseThrow(() -> new ConflictException(
-                    "Pagamento não encontrado ou não aprovado no Mercado Pago."));
-            String external = info.externalReference();
-            // Referência vazia/não numérica também é aceita no vínculo manual
-            // (pagamentos antigos sem external_reference) — o admin confere
-            // data/valor na lista do MP antes de vincular.
-            Long refId = external != null && external.matches("\\d+")
-                ? Long.valueOf(external) : null;
-            if (refId != null && !refId.equals(target.getId())) {
-                // Em pagamentos antigos a referência é um ID do Neon, sem
-                // correspondência confiável — só bloqueia se o dinheiro já
-                // foi baixado em OUTRA inscrição paga (evita contagem dupla).
-                registrationRepository.findById(refId)
-                    .filter(r -> "PAGA".equals(r.getStatus()))
-                    .ifPresent(r -> {
-                        throw new ConflictException(
-                            "Esse pagamento já está baixado na inscrição #" + refId + " (" + r.getFullName() + ").");
-                    });
-            }
-            target.setPaymentRef(info.paymentId());
-            audit("RUN_PAYMENT_LINKED_MANUAL", target.getId(),
-                "paymentRef=" + info.paymentId() + ",externalRef=" + external);
-            applyGatewayPayment(target, info);
-        } else {
+        applyMpLink(target, paymentId);
+        return toAdmin(registrationRepository.save(target));
+    }
+
+    /** Valida o pagamento no MP e baixa na inscrição informada. */
+    private void applyMpLink(RunRegistration target, String paymentId) {
+        if (!(paymentGateway instanceof MercadoPagoGateway mp) || !mp.isEnabled()) {
             throw new ConflictException("Gateway de pagamento indisponível no momento.");
         }
-        return toAdmin(registrationRepository.save(target));
+        RunPaymentGateway.ApprovedPaymentInfo info = mp.approvedPaymentInfoById(paymentId)
+            .orElseThrow(() -> new ConflictException(
+                "Pagamento não encontrado ou não aprovado no Mercado Pago."));
+        String external = info.externalReference();
+        // Referência vazia/não numérica também é aceita no vínculo manual
+        // (pagamentos antigos sem external_reference) — o admin confere
+        // data/valor na lista do MP antes de vincular.
+        Long refId = external != null && external.matches("\\d+")
+            ? Long.valueOf(external) : null;
+        if (refId != null && !refId.equals(target.getId())) {
+            // Em pagamentos antigos a referência é um ID do Neon, sem
+            // correspondência confiável — só bloqueia se o dinheiro já
+            // foi baixado em OUTRA inscrição paga (evita contagem dupla).
+            registrationRepository.findById(refId)
+                .filter(r -> "PAGA".equals(r.getStatus()))
+                .ifPresent(r -> {
+                    throw new ConflictException(
+                        "Esse pagamento já está baixado na inscrição #" + refId + " (" + r.getFullName() + ").");
+                });
+        }
+        // O mesmo paymentId nunca pode ser baixado em duas inscrições.
+        registrationRepository.findByPaymentRef(info.paymentId())
+            .filter(r -> !r.getId().equals(target.getId()))
+            .ifPresent(r -> {
+                throw new ConflictException(
+                    "Esse pagamento já está vinculado à inscrição #" + r.getId() + " (" + r.getFullName() + ").");
+            });
+        target.setPaymentRef(info.paymentId());
+        audit("RUN_PAYMENT_LINKED_MANUAL", target.getId(),
+            "paymentRef=" + info.paymentId() + ",externalRef=" + external);
+        applyGatewayPayment(target, info);
+    }
+
+    /**
+     * Reconciliação em massa: uma linha por pessoa —
+     * "email;ID_DO_PAGAMENTO_MP" vincula ao Mercado Pago;
+     * "email;MANUAL" confirma PIX direto (bruto = líquido, sem taxa).
+     * Cada linha é independente: erro em uma não impede as demais.
+     */
+    @Transactional
+    public RunImportResult reconcilePayments(RunReconcileRequest request) {
+        int confirmed = 0;
+        int skipped = 0;
+        List<String> errors = new ArrayList<>();
+        for (RunReconcileRow row : request.rows()) {
+            String email = row.email() != null ? row.email().trim() : "";
+            String ref = row.paymentRef() != null ? row.paymentRef().trim() : "";
+            try {
+                if (email.isEmpty()) {
+                    errors.add("(vazio): informe o e-mail");
+                    continue;
+                }
+                List<RunRegistration> matches = registrationRepository
+                    .findAllByEmailIgnoreCaseOrderByIdAsc(email);
+                if (matches.isEmpty()) {
+                    errors.add(email + ": inscrição não encontrada");
+                    continue;
+                }
+                RunRegistration target = matches.stream()
+                    .filter(r -> "PENDENTE".equals(r.getStatus()))
+                    .findFirst()
+                    .orElse(null);
+                if (target == null) {
+                    skipped++;
+                    continue; // já paga/cancelada — nada a fazer
+                }
+                RunRegistration locked = registrationRepository.findByIdForUpdate(target.getId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Inscrição não encontrada"));
+                if ("MANUAL".equalsIgnoreCase(ref)) {
+                    // PIX direto/comprovante: líquido = valor da inscrição.
+                    if (!"PIX".equals(locked.getPaymentMethod())) {
+                        locked.setPaymentMethod("PIX");
+                    }
+                    audit("RUN_PAYMENT_MANUAL_CONFIRMED", locked.getId(), "via=reconcile");
+                    markPaid(locked, locked.totalCharged());
+                } else if (!ref.isEmpty()) {
+                    applyMpLink(locked, ref);
+                    registrationRepository.save(locked);
+                } else {
+                    errors.add(email + ": informe o ID do pagamento MP ou MANUAL");
+                    continue;
+                }
+                confirmed++;
+            } catch (RuntimeException e) {
+                errors.add(email + ": " + e.getMessage());
+            }
+        }
+        return new RunImportResult(confirmed, skipped, errors);
     }
 
     /**

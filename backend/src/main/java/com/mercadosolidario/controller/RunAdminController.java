@@ -3,6 +3,7 @@ package com.mercadosolidario.controller;
 import com.mercadosolidario.dto.run.RunDtos.AdminRunRegistrationResponse;
 import com.mercadosolidario.dto.run.RunDtos.MpPaymentSummary;
 import com.mercadosolidario.dto.run.RunDtos.RunImportRequest;
+import com.mercadosolidario.dto.run.RunDtos.RunReconcileRequest;
 import com.mercadosolidario.dto.run.RunDtos.RunImportResult;
 import com.mercadosolidario.dto.run.RunDtos.UpdateRunRegistrationRequest;
 import com.mercadosolidario.dto.run.RunDtos.RunStatusResponse;
@@ -115,6 +116,13 @@ public class RunAdminController {
     @PreAuthorize("hasRole('ADMIN')")
     public RunImportResult importRegistrations(@RequestBody RunImportRequest request) {
         return runService.importRegistrations(request);
+    }
+
+    /** Reconciliação em massa: e-mail + ID do pagamento MP ou MANUAL (PIX direto). */
+    @PostMapping("/reconcile")
+    @PreAuthorize("hasRole('ADMIN')")
+    public RunImportResult reconcile(@RequestBody RunReconcileRequest request) {
+        return runService.reconcilePayments(request);
     }
 
     /** Estorna em cascata todas as inscrições pagas importadas (legacy) — volta para PENDENTE. */
