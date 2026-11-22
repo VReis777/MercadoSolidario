@@ -719,6 +719,8 @@ public class RunService {
             .ifPresent(donationRepository::delete);
         registration.setStatus("PENDENTE");
         registration.setPaidAt(null);
+        registration.setNetAmount(null);
+        registration.setPaymentRef(null);
         audit("RUN_REGISTRATION_PAYMENT_REVERTED", registration.getId(),
             "modality=" + registration.getModality() + ",name=" + registration.getFullName());
         return toStatus(registrationRepository.save(registration));
