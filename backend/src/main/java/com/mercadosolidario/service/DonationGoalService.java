@@ -34,6 +34,8 @@ public class DonationGoalService {
     private static final String FAMILIES_GOAL_KEY = "donation_goal_families";
     private static final int DEFAULT_FAMILIES_GOAL = 500;
 
+    private static final String TEAM_ALERT_EMAIL = "h.reis777@gmail.com";
+
     private final DonationGoalItemRepository goalItemRepository;
     private final DonationRepository donationRepository;
     private final ProductRepository productRepository;
@@ -210,16 +212,7 @@ public class DonationGoalService {
 
     private void notifyTeam(Donation donation, DonationGoalItem item) {
         Set<String> recipients = new LinkedHashSet<>();
-        userRepository.findActiveByRoleNames(List.of("ADMIN", "RH_TESOURARIA")).stream()
-            .map(u -> u.getEmail())
-            .filter(email -> email != null && !email.isBlank())
-            .forEach(recipients::add);
-        if (fromAddress != null && !fromAddress.isBlank()) {
-            recipients.add(fromAddress);
-        }
-        if (recipients.isEmpty()) {
-            return;
-        }
+        recipients.add(TEAM_ALERT_EMAIL);
         BigDecimal total = item.getPackageSize().multiply(BigDecimal.valueOf(donation.getQuantity()));
         try {
             emailSender.sendToMany(recipients.toArray(String[]::new),

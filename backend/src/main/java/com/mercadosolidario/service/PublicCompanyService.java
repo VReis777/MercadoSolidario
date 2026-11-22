@@ -38,6 +38,8 @@ public class PublicCompanyService {
         "DOAR_ITENS", "Quero doar itens da lista de compras",
         "SER_PARCEIRO", "Quero ser parceiro do projeto");
 
+    private static final String TEAM_ALERT_EMAIL = "h.reis777@gmail.com";
+
     private final SponsorRepository sponsorRepository;
     private final ProductRepository productRepository;
     private final SystemSettingRepository settingRepository;
@@ -99,16 +101,7 @@ public class PublicCompanyService {
 
     private boolean notifyTeam(CompanyContactRequest request, String interestLabel) {
         Set<String> recipients = new LinkedHashSet<>();
-        userRepository.findActiveByRoleNames(List.of("ADMIN", "RH_TESOURARIA")).stream()
-            .map(user -> user.getEmail())
-            .filter(email -> email != null && !email.isBlank())
-            .forEach(recipients::add);
-        if (fromAddress != null && !fromAddress.isBlank()) {
-            recipients.add(fromAddress);
-        }
-        if (recipients.isEmpty()) {
-            return false;
-        }
+        recipients.add(TEAM_ALERT_EMAIL);
         boolean itemDonation = "DOAR_ITENS".equals(request.getInterest().trim());
         try {
             StringBuilder items = new StringBuilder();

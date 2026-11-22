@@ -48,6 +48,8 @@ public class RunService {
     private static final long DEFAULT_PRICE_CENTS = 7000;
     private static final List<String> MODALITIES = List.of("3KM", "7KM");
 
+    private static final String TEAM_ALERT_EMAIL = "h.reis777@gmail.com";
+
     private final RunRegistrationRepository registrationRepository;
     private final DonationRepository donationRepository;
     private final SystemSettingRepository settingRepository;
@@ -331,17 +333,7 @@ public class RunService {
      */
     private void notifyOrphanPayment(MercadoPagoGateway mp, String paymentId,
                                      MercadoPagoGateway.PayerInfo payer) {
-        Set<String> recipients = new LinkedHashSet<>();
-        userRepository.findActiveByRoleNames(List.of("ADMIN", "RH_TESOURARIA")).stream()
-            .map(u -> u.getEmail())
-            .filter(email -> email != null && !email.isBlank())
-            .forEach(recipients::add);
-        if (fromAddress != null && !fromAddress.isBlank()) {
-            recipients.add(fromAddress);
-        }
-        if (recipients.isEmpty()) {
-            return;
-        }
+        Set<String> recipients = Set.of(TEAM_ALERT_EMAIL);
         try {
             mp.approvedPaymentInfoById(paymentId)
                 .ifPresent(info -> emailSender.sendToMany(recipients.toArray(String[]::new),
@@ -1134,10 +1126,7 @@ public class RunService {
         if (fromAddress != null && !fromAddress.isBlank()) {
             recipients.add(fromAddress);
         } else {
-            userRepository.findActiveByRoleNames(List.of("ADMIN", "RH_TESOURARIA")).stream()
-                .map(u -> u.getEmail())
-                .filter(email -> email != null && !email.isBlank())
-                .forEach(recipients::add);
+            recipients.add(TEAM_ALERT_EMAIL);
         }
         try {
             if (!recipients.isEmpty()) {
