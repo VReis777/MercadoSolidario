@@ -50,6 +50,13 @@ public class RunService {
 
     private static final String TEAM_ALERT_EMAIL = "h.reis777@gmail.com";
 
+    /**
+     * Silêncio de e-mails durante operações em massa (importação/reconciliação
+     * de recuperação). Ligado por request via ThreadLocal — nunca vaza para
+     * outras threads/transações.
+     */
+    private static final ThreadLocal<Boolean> SUPPRESS_EMAILS = ThreadLocal.withInitial(() -> false);
+
     private final RunRegistrationRepository registrationRepository;
     private final DonationRepository donationRepository;
     private final SystemSettingRepository settingRepository;
@@ -506,14 +513,27 @@ public class RunService {
      */
     @Transactional
     public RunImportResult importRegistrations(RunImportRequest request) {
+        SUPPRESS_EMAILS.set(Boolean.TRUE.equals(request.silent()));
+        try {
+            return doImportRegistrations(request);
+        } finally {
+            SUPPRESS_EMAILS.remove();
+        }
+    }
+
+    private RunImportResult doImportRegistrations(RunImportRequest request) {
         List<String> errors = new ArrayList<>();
         int created = 0;
+        int updated = 0;
         int skipped = 0;
         if (request.registrations() != null) {
             for (RunImportRow row : request.registrations()) {
                 try {
-                    if (importOne(row)) {
+                    int outcome = importOne(row);
+                    if (outcome == 1) {
                         created++;
+                    } else if (outcome == 2) {
+                        updated++;
                     } else {
                         skipped++;
                     }
@@ -559,11 +579,17 @@ public class RunService {
             "SELECT setval(pg_get_serial_sequence('run_registrations','id'), "
                 + "COALESCE((SELECT MAX(id) FROM run_registrations), 1))");
         audit("RUN_IMPORT", null,
-            "created=" + created + ",skipped=" + skipped + ",errors=" + errors.size());
-        return new RunImportResult(created, skipped, errors);
+            "created=" + created + ",updated=" + updated + ",skipped=" + skipped
+                + ",errors=" + errors.size());
+        return new RunImportResult(created, updated, skipped, errors);
     }
 
-    private boolean importOne(RunImportRow row) {
+    /**
+     * Retorna 1=criado, 2=perfil atualizado (e-mail já existia), 0=pulado.
+     * No update só dados de perfil são tocados — status/pagamento intactos,
+     * para não afetar quem se cadastrou depois da migração.
+     */
+    private int importOne(RunImportRow row) {
         String name = trimToNull(row.fullName());
         if (name == null) {
             throw new IllegalArgumentException("nome obrigatório");
@@ -583,11 +609,40 @@ public class RunService {
         }
         String emailNorm = trimToNull(row.email());
         String phoneDigits = digits(trimToNull(row.phone()));
+
+        // E-mail já cadastrado → atualiza só o perfil (nome/telefone/nascimento/
+        // modalidade/camisa). Status, pagamento e refs nunca são tocados.
+        if (emailNorm != null) {
+            List<RunRegistration> byEmail = registrationRepository
+                .findAllByEmailIgnoreCaseOrderByIdAsc(emailNorm).stream()
+                .filter(r -> !"CANCELADA".equals(r.getStatus()))
+                .toList();
+            if (byEmail.size() > 1) {
+                return 0; // ambíguo — não escolhe sozinho
+            }
+            if (byEmail.size() == 1) {
+                RunRegistration existing = byEmail.get(0);
+                existing.setFullName(name);
+                if (trimToNull(row.phone()) != null) {
+                    existing.setPhone(trimToNull(row.phone()));
+                }
+                if (row.birthDate() != null) {
+                    existing.setBirthDate(row.birthDate());
+                }
+                existing.setModality(modality);
+                if (trimToNull(row.shirtSize()) != null) {
+                    existing.setShirtSize(trimToNull(row.shirtSize()));
+                }
+                registrationRepository.save(existing);
+                audit("RUN_REGISTRATION_PROFILE_UPDATED", existing.getId(), "via=import");
+                return 2;
+            }
+        }
+
         boolean duplicate = registrationRepository.findByStatusNot("CANCELADA").stream()
-            .anyMatch(r -> (emailNorm != null && emailNorm.equalsIgnoreCase(trimToNull(r.getEmail())))
-                || (phoneDigits != null && phoneDigits.equals(digits(trimToNull(r.getPhone())))));
+            .anyMatch(r -> (phoneDigits != null && phoneDigits.equals(digits(trimToNull(r.getPhone())))));
         if (duplicate) {
-            return false;
+            return 0;
         }
         Long explicitId = row.originalId();
         if (explicitId != null && registrationRepository.existsById(explicitId)) {
@@ -610,7 +665,7 @@ public class RunService {
             RunRegistration saved = registrationRepository.findById(newId).orElseThrow();
             markPaid(saved, estimateNet(saved));
         }
-        return true;
+        return 1;
     }
 
     /**
@@ -717,6 +772,15 @@ public class RunService {
      */
     @Transactional
     public RunImportResult reconcilePayments(RunReconcileRequest request) {
+        SUPPRESS_EMAILS.set(Boolean.TRUE.equals(request.silent()));
+        try {
+            return doReconcilePayments(request);
+        } finally {
+            SUPPRESS_EMAILS.remove();
+        }
+    }
+
+    private RunImportResult doReconcilePayments(RunReconcileRequest request) {
         int confirmed = 0;
         int skipped = 0;
         List<String> errors = new ArrayList<>();
@@ -763,7 +827,7 @@ public class RunService {
                 errors.add(email + ": " + e.getMessage());
             }
         }
-        return new RunImportResult(confirmed, skipped, errors);
+        return new RunImportResult(confirmed, 0, skipped, errors);
     }
 
     /**
@@ -1123,6 +1187,9 @@ public class RunService {
     }
 
     private void notifyPaid(RunRegistration registration) {
+        if (Boolean.TRUE.equals(SUPPRESS_EMAILS.get())) {
+            return;
+        }
         // Notificação à equipe vai só para o e-mail principal — os demais
         // avisos (pendência, pagamento órfão) continuam indo aos admins.
         Set<String> recipients = new LinkedHashSet<>();

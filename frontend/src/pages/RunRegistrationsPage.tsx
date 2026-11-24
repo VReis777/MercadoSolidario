@@ -6,12 +6,14 @@ import {
   Card,
   CardContent,
   Chip,
+  Checkbox,
   CircularProgress,
   Container,
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
+  FormControlLabel,
   Grid,
   IconButton,
   MenuItem,
@@ -63,11 +65,13 @@ function RunRegistrationsPage() {
   const [importText, setImportText] = useState('')
   const [donationsText, setDonationsText] = useState('')
   const [importing, setImporting] = useState(false)
-  const [importResult, setImportResult] = useState<{ created: number; skipped: number; errors: string[] } | null>(null)
+  const [importResult, setImportResult] = useState<{ created: number; updated: number; skipped: number; errors: string[] } | null>(null)
   const [reconcileOpen, setReconcileOpen] = useState(false)
   const [reconcileText, setReconcileText] = useState('')
   const [reconciling, setReconciling] = useState(false)
-  const [reconcileResult, setReconcileResult] = useState<{ created: number; skipped: number; errors: string[] } | null>(null)
+  const [reconcileResult, setReconcileResult] = useState<{ created: number; updated: number; skipped: number; errors: string[] } | null>(null)
+  const [importSilent, setImportSilent] = useState(true)
+  const [reconcileSilent, setReconcileSilent] = useState(true)
   const [mpOpen, setMpOpen] = useState(false)
   const [mpPayments, setMpPayments] = useState<{
     paymentId: string | null; externalReference: string | null; amount: number | null
@@ -284,10 +288,10 @@ function RunRegistrationsPage() {
     setError('')
     setImportResult(null)
     try {
-      const result = await runService.importRegistrations({ registrations, donations })
+      const result = await runService.importRegistrations({ registrations, donations, silent: importSilent })
       setImportResult(result)
       if (result.errors.length === 0) {
-        setMessage(`Importação concluída: ${result.created} registro(s) criado(s), ${result.skipped} ignorado(s).`)
+        setMessage(`Importação concluída: ${result.created} criado(s), ${result.updated} atualizado(s), ${result.skipped} ignorado(s).`)
       }
       await load()
     } catch (importError) {
@@ -314,7 +318,7 @@ function RunRegistrationsPage() {
     setError('')
     setReconcileResult(null)
     try {
-      const result = await runService.reconcilePayments(rows)
+      const result = await runService.reconcilePayments(rows, reconcileSilent)
       setReconcileResult(result)
       setMessage(`Baixa concluída: ${result.created} confirmada(s), ${result.skipped} já estavam pagas.`)
       await load()
@@ -770,9 +774,12 @@ function RunRegistrationsPage() {
             <TextField multiline minRows={3} fullWidth label="Doações" value={donationsText}
               onChange={(e) => setDonationsText(e.target.value)}
               placeholder={'2500,00;Brechó;;;Doação do brechó\n5,00;Doação pessoal;;;'} />
+            <FormControlLabel control={
+              <Checkbox checked={importSilent} onChange={(e) => setImportSilent(e.target.checked)} />
+            } label="Importação silenciosa — não envia nenhum e-mail (inscritos e equipe)" />
             {importResult && (
               <Alert severity={importResult.errors.length ? 'warning' : 'success'}>
-                {importResult.created} criado(s), {importResult.skipped} ignorado(s).
+                {importResult.created} criado(s), {importResult.updated} atualizado(s), {importResult.skipped} ignorado(s).
                 {importResult.errors.length > 0 && (
                   <Box component="ul" sx={{ m: 0, pl: 2 }}>
                     {importResult.errors.map((e, i) => <li key={i}>{e}</li>)}
@@ -804,9 +811,13 @@ function RunRegistrationsPage() {
             <TextField multiline minRows={10} fullWidth label="Linhas" value={reconcileText}
               onChange={(e) => setReconcileText(e.target.value)}
               placeholder={'merianir40@gmail.com;190399604882\nlolarpimentel@gmail.com;MANUAL'} />
+            <FormControlLabel control={
+              <Checkbox checked={reconcileSilent} onChange={(e) => setReconcileSilent(e.target.checked)} />
+            } label="Baixa silenciosa — não envia e-mail de confirmação nem QR" />
             {reconcileResult && (
               <Alert severity={reconcileResult.errors.length ? 'warning' : 'success'}>
                 {reconcileResult.created} confirmada(s), {reconcileResult.skipped} já estavam pagas.
+
                 {reconcileResult.errors.length > 0 && (
                   <Box component="ul" sx={{ m: 0, pl: 2 }}>
                     {reconcileResult.errors.map((e, i) => <li key={i}>{e}</li>)}

@@ -132,11 +132,13 @@ public class RunDtos {
 
     public record RunImportRequest(
         List<RunImportRow> registrations,
-        List<RunImportDonation> donations
+        List<RunImportDonation> donations,
+        Boolean silent
     ) {}
 
     public record RunImportResult(
         int created,
+        int updated,
         int skipped,
         List<String> errors
     ) {}
@@ -148,7 +150,8 @@ public class RunDtos {
     ) {}
 
     public record RunReconcileRequest(
-        List<RunReconcileRow> rows
+        List<RunReconcileRow> rows,
+        Boolean silent
     ) {}
 
     /** Resumo de pagamento aprovado no Mercado Pago (conferência admin). */
